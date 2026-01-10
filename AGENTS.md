@@ -69,6 +69,48 @@ Top-level directories:
 
 ## Packages
 
+### `/packages/config`
+
+Shared workspace configuration and “single import” helpers that enforce consistency across apps.
+
+**What lives here (recommended):**
+
+- **Tooling configs**
+
+  - shared `eslint` presets
+  - shared `prettier` config
+  - shared `tsconfig` bases
+
+- **Centralized environment loading (dotenv)**
+
+  - A small `env` module that loads a **canonical root `.env`** (or `.env.example`) and exposes **typed** accessors.
+  - All apps/packages import this helper instead of each app hand-rolling dotenv logic.
+
+**Recommended env strategy:**
+
+- Keep **one canonical env file at the repo root**:
+
+  - commit `.env.example`
+  - keep `.env` git-ignored
+
+- Support layered overrides by environment using either:
+
+  - **`dotenv-flow`** (`.env`, `.env.local`, `.env.development`, `.env.production`, `.env.test`, etc.)
+  - or **`dotenv-safe`** for required-key validation against `.env.example`
+
+- Allow per-service overrides via `process.env` (CI and hosts like Vercel/Render still win).
+
+**Typed env (recommended):**
+
+- Validate + coerce env vars once at startup using a schema (e.g., Zod or Envalid) and export a single `env` object.
+- Include helpers for common needs:
+
+  - `getEnv()` / `env` singleton
+  - `requireEnv("DATABASE_URL")`
+  - `asUrl`, `asInt`, `asBool`
+
+_(Why this exists: fewer “works on my machine” issues, and automation/CI can load the root env the same way every time.)_
+
 ### `/packages/database`
 
 Centered around Prisma.
@@ -342,7 +384,9 @@ pnpm install
 
 ### Environment variables
 
-Create `.env` files per app, or a root `.env` (and load it from scripts).
+Use a **single canonical `.env` at the repo root** (git-ignored) and check in a `.env.example` as the source of truth.
+
+Apps/packages should **not** each implement dotenv loading; they should import the helper from **`/packages/config`** to load/vali
 
 Common env vars:
 
