@@ -6,85 +6,85 @@ import Decimal from 'decimal.js';
 
 export function fakeUser() {
   return {
-    name: undefined,
-    email: undefined,
-    emailVerified: undefined,
-    image: undefined,
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    emailVerified: faker.date.past({ years: 2 }),
+    image: faker.image.avatar(),
   };
 }
 export function fakeUserComplete() {
   return {
     id: faker.string.uuid(),
-    name: undefined,
-    email: undefined,
-    emailVerified: undefined,
-    image: undefined,
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    emailVerified: faker.date.past({ years: 2 }),
+    image: faker.image.avatar(),
   };
 }
 export function fakeAccount() {
   return {
-    type: faker.lorem.words(5),
-    provider: faker.lorem.words(5),
-    providerAccountId: faker.lorem.words(5),
-    refresh_token: undefined,
-    access_token: undefined,
-    expires_at: undefined,
-    token_type: undefined,
-    scope: undefined,
-    id_token: undefined,
-    session_state: undefined,
+    type: faker.helpers.arrayElement(['oauth','oidc']),
+    provider: faker.helpers.arrayElement(['google','github','azure-ad']),
+    providerAccountId: faker.string.uuid(),
+    refresh_token: faker.string.alphanumeric(64),
+    access_token: faker.string.alphanumeric(64),
+    expires_at: Math.floor(Date.now()/1000) + faker.number.int({ min: 3600, max: 86400 * 30 }),
+    token_type: 'Bearer',
+    scope: faker.helpers.arrayElement(['openid email profile','read:user user:email','']),
+    id_token: faker.string.alphanumeric(256),
+    session_state: faker.string.alphanumeric(16),
   };
 }
 export function fakeAccountComplete() {
   return {
     id: faker.string.uuid(),
     userId: faker.string.uuid(),
-    type: faker.lorem.words(5),
-    provider: faker.lorem.words(5),
-    providerAccountId: faker.lorem.words(5),
-    refresh_token: undefined,
-    access_token: undefined,
-    expires_at: undefined,
-    token_type: undefined,
-    scope: undefined,
-    id_token: undefined,
-    session_state: undefined,
+    type: faker.helpers.arrayElement(['oauth','oidc']),
+    provider: faker.helpers.arrayElement(['google','github','azure-ad']),
+    providerAccountId: faker.string.uuid(),
+    refresh_token: faker.string.alphanumeric(64),
+    access_token: faker.string.alphanumeric(64),
+    expires_at: Math.floor(Date.now()/1000) + faker.number.int({ min: 3600, max: 86400 * 30 }),
+    token_type: 'Bearer',
+    scope: faker.helpers.arrayElement(['openid email profile','read:user user:email','']),
+    id_token: faker.string.alphanumeric(256),
+    session_state: faker.string.alphanumeric(16),
   };
 }
 export function fakeSession() {
   return {
-    sessionToken: faker.lorem.words(5),
-    expires: faker.date.anytime(),
+    sessionToken: faker.string.uuid(),
+    expires: faker.date.soon({ days: 30 }),
   };
 }
 export function fakeSessionComplete() {
   return {
     id: faker.string.uuid(),
-    sessionToken: faker.lorem.words(5),
+    sessionToken: faker.string.uuid(),
     userId: faker.string.uuid(),
-    expires: faker.date.anytime(),
+    expires: faker.date.soon({ days: 30 }),
   };
 }
 export function fakeAuthenticator() {
   return {
-    credentialID: faker.lorem.words(5),
-    providerAccountId: faker.lorem.words(5),
-    credentialPublicKey: faker.lorem.words(5),
-    counter: faker.number.int(),
-    credentialDeviceType: faker.lorem.words(5),
+    credentialID: faker.string.alphanumeric(48),
+    providerAccountId: faker.string.uuid(),
+    credentialPublicKey: faker.string.alphanumeric(256),
+    counter: faker.number.int({ min: 0, max: 1000 }),
+    credentialDeviceType: faker.helpers.arrayElement(['platform','cross-platform']),
     credentialBackedUp: faker.datatype.boolean(),
-    transports: undefined,
+    transports: faker.helpers.arrayElements(['usb','nfc','ble','internal']).join(','),
   };
 }
 export function fakeAuthenticatorComplete() {
   return {
     userId: faker.string.uuid(),
-    credentialID: faker.lorem.words(5),
-    providerAccountId: faker.lorem.words(5),
-    credentialPublicKey: faker.lorem.words(5),
-    counter: faker.number.int(),
-    credentialDeviceType: faker.lorem.words(5),
+    credentialID: faker.string.alphanumeric(48),
+    providerAccountId: faker.string.uuid(),
+    credentialPublicKey: faker.string.alphanumeric(256),
+    counter: faker.number.int({ min: 0, max: 1000 }),
+    credentialDeviceType: faker.helpers.arrayElement(['platform','cross-platform']),
     credentialBackedUp: faker.datatype.boolean(),
-    transports: undefined,
+    transports: faker.helpers.arrayElements(['usb','nfc','ble','internal']).join(','),
   };
 }

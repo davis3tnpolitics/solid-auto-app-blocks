@@ -1,60 +1,241 @@
-model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
+/// # Auth.js Models (Prisma Adapter + Database Sessions)
+///
+/// These models are designed to work with **Auth.js** using:
+/// - **Prisma Adapter**
+/// - **Database sessions** (`session: { strategy: "database" }`)
+/// - Optional **WebAuthn / Passkeys** support
+///
+/// ## Fake data hints
+///
+/// `prisma-generator-fake-data` supports per-field overrides via:
+/// - `///FAKE:<TypeScript expression>` (must be directly above the field) :contentReference[oaicite:2]{index=2}
 
-  accounts      Account[]
-  sessions      Session[]
+/// @namespace Auth
+/// ## User
+///
+/// The canonical user record.
+///
+/// **Used by Auth.js for:**
+/// - Linking provider accounts (`Account`)
+/// - Storing database sessions (`Session`)
+/// - Storing passkeys (`Authenticator`, if you enable WebAuthn)
+model User {
+  /// Primary key (UUID).
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
+  id             String          @id @default(uuid()) @db.Uuid
+
+  /// Display name. Optional because some auth flows (e.g., passkey-first) may not collect it.
+  /// Fake data (faker):
+  ///FAKE:faker.person.fullName()
+  name           String?
+
+  /// Email address.
+  ///
+  /// Notes:
+  /// - Optional to support passkey-only users.
+  /// - `@unique` still enforces uniqueness **when present**.
+  /// Fake data (faker):
+  ///FAKE:faker.internet.email()
+  email          String?         @unique
+
+  /// When the email was verified (if using an email-based provider / verification flow).
+  /// Fake data (faker):
+  ///FAKE:faker.date.past({ years: 2 })
+  emailVerified  DateTime?
+
+  /// Profile image URL.
+  /// Fake data (faker):
+  ///FAKE:faker.image.avatar()
+  image          String?
+
+  /// Provider accounts linked to this user (OAuth, OIDC, etc.).
+  accounts       Account[]
+
+  /// Database sessions for this user (only used when session strategy is `database`).
+  sessions       Session[]
+
+  /// WebAuthn / Passkeys registered for this user (optional).
   authenticators Authenticator[]
 }
 
+/// @namespace Auth
+/// ## Account
+///
+/// A connection between a `User` and an external identity provider account.
+///
+/// **Examples:** Google OAuth, GitHub OAuth, Microsoft Entra ID (OIDC), etc.
+///
+/// Auth.js identifies an account by the pair:
+/// - `provider` (e.g., `google`)
+/// - `providerAccountId` (the user's ID at that provider)
 model Account {
+  /// Primary key (UUID).
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   id                String  @id @default(uuid()) @db.Uuid
+
+  /// Foreign key to `User`.
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   userId            String  @db.Uuid
+
+  /// Relation to the owning `User`.
+  ///
+  /// `onDelete: Cascade` keeps the auth tables tidy if a user is deleted.
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// Provider account type (Auth.js uses values like `oauth`, `oidc`, etc.).
+  /// Fake data (faker):
+  ///FAKE:faker.helpers.arrayElement(['oauth','oidc'])
   type              String
+
+  /// Provider ID (e.g., `google`, `github`, `azure-ad`).
+  /// Fake data (faker):
+  ///FAKE:faker.helpers.arrayElement(['google','github','azure-ad'])
   provider          String
+
+  /// The account ID from the provider.
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   providerAccountId String
 
-  // Keep these optional fields; they’re the “standard” ones Auth.js stores for OAuth flows
+  /// OAuth refresh token (if the provider returns one).
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(64)
   refresh_token     String? @db.Text
+
+  /// OAuth access token.
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(64)
   access_token      String? @db.Text
+
+  /// Access token expiration (epoch seconds), if provided.
+  /// Fake data (faker):
+  ///FAKE:Math.floor(Date.now()/1000) + faker.number.int({ min: 3600, max: 86400 * 30 })
   expires_at        Int?
+
+  /// Token type (often `Bearer`).
+  /// Fake data (faker):
+  ///FAKE:'Bearer'
   token_type        String?
+
+  /// OAuth scopes granted.
+  /// Fake data (faker):
+  ///FAKE:faker.helpers.arrayElement(['openid email profile','read:user user:email',''])
   scope             String?
+
+  /// ID token for OIDC providers.
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(256)
   id_token          String? @db.Text
+
+  /// Provider-specific session state (rare, but supported by Auth.js).
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(16)
   session_state     String?
 
+  /// Each provider account can only be linked once.
   @@unique([provider, providerAccountId])
+
+  /// Common lookup path: User → Accounts.
   @@index([userId])
 }
 
+/// @namespace Auth
+/// ## Session
+///
+/// A persisted session record.
+///
+/// Only used when Auth.js is configured for **database sessions**.
+/// The application stores a `sessionToken` in a cookie and looks up the session row.
 model Session {
+  /// Primary key (UUID).
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   id           String   @id @default(uuid()) @db.Uuid
+
+  /// Opaque token used to look up this session.
+  ///
+  /// Auth.js will generate this; store it as-is.
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   sessionToken String   @unique
+
+  /// Foreign key to `User`.
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
   userId       String   @db.Uuid
+
+  /// Relation to the owning `User`.
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// When this session expires.
+  /// Fake data (faker):
+  ///FAKE:faker.date.soon({ days: 30 })
   expires      DateTime
 
+  /// Common lookup path: User → Sessions.
   @@index([userId])
 }
 
-// WebAuthn / Passkeys (required when using the Passkey provider)
+/// @namespace Auth
+/// ## Authenticator
+///
+/// WebAuthn / Passkeys credentials.
+///
+/// This model is required if you enable a Passkey/WebAuthn provider.
+/// It supports:
+/// - Multiple credentials per user
+/// - Device metadata (e.g., backed up, device type)
+/// - Credential counter for replay protection
 model Authenticator {
-  userId              String  @db.Uuid
-  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Foreign key to `User`.
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
+  userId               String  @db.Uuid
 
-  credentialID        String  @db.Text
-  providerAccountId   String
-  credentialPublicKey String  @db.Text
-  counter             Int
+  /// Relation to the owning `User`.
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// WebAuthn credential ID (base64url-encoded).
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(48)
+  credentialID         String  @db.Text
+
+  /// Provider account id (Auth.js uses it to connect the authenticator to an account).
+  /// Fake data (faker):
+  ///FAKE:faker.string.uuid()
+  providerAccountId    String
+
+  /// Public key for the credential.
+  /// Fake data (faker):
+  ///FAKE:faker.string.alphanumeric(256)
+  credentialPublicKey  String  @db.Text
+
+  /// Signature counter used by WebAuthn for replay protection.
+  /// Fake data (faker):
+  ///FAKE:faker.number.int({ min: 0, max: 1000 })
+  counter              Int
+
+  /// Device type string (platform / cross-platform) depending on the library.
+  /// Fake data (faker):
+  ///FAKE:faker.helpers.arrayElement(['platform','cross-platform'])
   credentialDeviceType String
-  credentialBackedUp  Boolean
-  transports          String? @db.Text
 
+  /// Whether the credential is backed up / synced.
+  /// Fake data (faker):
+  ///FAKE:faker.datatype.boolean()
+  credentialBackedUp   Boolean
+
+  /// Optional transports (e.g., `usb`, `nfc`, `ble`, `internal`).
+  /// Fake data (faker):
+  ///FAKE:faker.helpers.arrayElements(['usb','nfc','ble','internal']).join(',')
+  transports           String? @db.Text
+
+  /// Composite primary key: each user can have many credentials.
   @@id([userId, credentialID])
+
+  /// Common lookup path: User → Authenticators.
   @@index([userId])
 }

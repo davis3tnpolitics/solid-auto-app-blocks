@@ -11,7 +11,7 @@ generator client {
 
 generator docs {
   provider = "prisma-markdown"
-  output   = "../docs/erd.md"
+  output   = "../docs/docs.md"
 }
 
 generator contracts {
