@@ -1,0 +1,20 @@
+{
+  "extends": "../config/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "components/*": ["components/*"],
+      "lib/*": ["lib/*"],
+      "@workspace/ui": ["index.ts"],
+      "@workspace/ui/*": ["*"]
+    }
+  },
+  "include": ["components", "lib", "index.ts"],
+  "exclude": ["node_modules", "dist"]
+}
