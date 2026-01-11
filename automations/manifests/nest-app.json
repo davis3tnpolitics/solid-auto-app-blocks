@@ -1,0 +1,26 @@
+{
+  "name": "nest-app",
+  "description": "Generate a NestJS app in apps/<name> wired to shared config, database, auth, and communications packages when present.",
+  "entry": "node automations/generators/nest-app.js",
+  "options": [
+    {
+      "flag": "--name",
+      "type": "string",
+      "required": true,
+      "description": "App directory name (apps/<name>)."
+    },
+    {
+      "flag": "--port",
+      "type": "number",
+      "default": 3001,
+      "description": "Port used in the generated bootstrap file."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": false,
+      "description": "Overwrite an existing directory."
+    }
+  ],
+  "outputs": ["apps/<name>/**"]
+}

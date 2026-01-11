@@ -1,0 +1,20 @@
+{
+  "name": "add-auth",
+  "description": "Add Auth.js (NextAuth) routing, middleware, and types to an existing Next.js app using the shared auth package.",
+  "entry": "node automations/generators/front-end/add-ons/add-auth.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target app directory name under apps/."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": false,
+      "description": "Overwrite existing auth files."
+    }
+  ],
+  "outputs": ["apps/<app>/src/app/api/auth/[...nextauth]/route.ts", "apps/<app>/src/middleware.ts", "apps/<app>/src/types/next-auth.d.ts"]
+}

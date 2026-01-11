@@ -1,0 +1,32 @@
+{
+  "name": "next-app",
+  "description": "Generate a Next.js app in apps/<name> with shared configs, workspace paths, and a health route.",
+  "entry": "node automations/generators/next-app.js",
+  "options": [
+    {
+      "flag": "--name",
+      "type": "string",
+      "required": true,
+      "description": "App directory name (apps/<name>)."
+    },
+    {
+      "flag": "--port",
+      "type": "number",
+      "default": 3000,
+      "description": "Port hint recorded in the generated README."
+    },
+    {
+      "flag": "--sample",
+      "type": "boolean",
+      "default": true,
+      "description": "Include sample page content."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": false,
+      "description": "Overwrite an existing directory."
+    }
+  ],
+  "outputs": ["apps/<name>/**"]
+}
