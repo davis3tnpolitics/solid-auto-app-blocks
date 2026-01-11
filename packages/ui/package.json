@@ -11,6 +11,11 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./charts": {
+      "import": "./dist/components/charts/index.js",
+      "require": "./dist/components/charts/index.js",
+      "types": "./dist/components/charts/index.d.ts"
+    },
     "./components/*": {
       "import": "./dist/components/*.js",
       "require": "./dist/components/*.js",
@@ -50,8 +55,10 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@tremor/react": "^3.18.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lucide-react": "^0.441.0",
     "next-themes": "^0.4.6",
     "react-hook-form": "^7.45.0",
     "sonner": "^2.0.7",

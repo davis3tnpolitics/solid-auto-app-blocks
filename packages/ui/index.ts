@@ -19,6 +19,7 @@ export type {
   RadioOption,
   SelectOption,
 } from "./components/forms/types"
+export * from "./components/charts"
 export * from "./components/ui/dialog"
 export * from "./components/ui/drawer"
 export * from "./components/ui/dropdown-menu"
