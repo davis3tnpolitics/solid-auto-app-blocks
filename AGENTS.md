@@ -76,25 +76,21 @@ Shared workspace configuration and “single import” helpers that enforce cons
 **What lives here (recommended):**
 
 - **Tooling configs**
-
   - shared `eslint` presets
   - shared `prettier` config
   - shared `tsconfig` bases
 
 - **Centralized environment loading (dotenv)**
-
   - A small `env` module that loads a **canonical root `.env`** (or `.env.example`) and exposes **typed** accessors.
   - All apps/packages import this helper instead of each app hand-rolling dotenv logic.
 
 **Recommended env strategy:**
 
 - Keep **one canonical env file at the repo root**:
-
   - commit `.env.example`
   - keep `.env` git-ignored
 
 - Support layered overrides by environment using either:
-
   - **`dotenv-flow`** (`.env`, `.env.local`, `.env.development`, `.env.production`, `.env.test`, etc.)
   - or **`dotenv-safe`** for required-key validation against `.env.example`
 
@@ -104,7 +100,6 @@ Shared workspace configuration and “single import” helpers that enforce cons
 
 - Validate + coerce env vars once at startup using a schema (e.g., Zod or Envalid) and export a single `env` object.
 - Include helpers for common needs:
-
   - `getEnv()` / `env` singleton
   - `requireEnv("DATABASE_URL")`
   - `asUrl`, `asInt`, `asBool`
@@ -152,28 +147,23 @@ A shared authentication package that lets **Next.js (Auth.js)** and **NestJS** s
 **What lives here (recommended):**
 
 - **Prisma auth models + types**
-
   - Keep Auth.js/NextAuth models in Prisma (e.g., `User`, `Account`, `Session`, `VerificationToken`) and export the generated types.
   - Add your app-specific authz models here too (e.g., `Role`, `Permission`, `OrgMembership`, `ApiKey`).
 
 - **Auth.js helpers (web side)**
-
   - Provider presets (GitHub/Google/etc.), shared callbacks, and session shape.
   - A small helper to generate a server-side “API access token” (if you choose to mint one).
 
 - **NestJS auth helpers (api side)**
-
   - A reusable `AuthGuard` that validates requests.
   - A `RolesGuard` / `PermissionsGuard` and a `@CurrentUser()` decorator.
   - Token/session verification utilities so API modules don’t re-implement auth logic.
 
 - **Shared contracts**
-
   - `AuthUser`, `SessionClaims`, `Role`/`Permission` enums/types (and optional validators).
   - A single “session user” shape used by both apps.
 
 - **Test utilities**
-
   - Seed helpers to create users/sessions.
   - Token factories for e2e tests.
 
@@ -181,7 +171,6 @@ A shared authentication package that lets **Next.js (Auth.js)** and **NestJS** s
 
 - **Login + session management:** handled by **Next.js/Auth.js**.
 - **API authorization:** handled by **NestJS guards**.
-
   - Option A (common): browser calls API with a **Bearer access token** minted server-side by Next (short-lived), verified by Nest.
   - Option B: API validates the **Auth.js session** (cookie/session id) by looking up the session in Prisma.
 
@@ -198,29 +187,24 @@ A shared communications package for **sending messages** (email, SMS) from both 
 **What lives here (recommended):**
 
 - **Message contracts**
-
   - Common types like `EmailMessage`, `SmsMessage`, `Recipient`, `TemplateId`, `ProviderResult`.
   - Domain-specific “intents” (e.g., `InviteUserEmail`, `PasswordResetSms`) that map to templates.
 
 - **Template + rendering layer**
-
   - Typed templates (variables enforced by TypeScript).
   - Rendering helpers (subject/body builders) usable in Node environments.
   - Optional: shared React email components (if you choose a React-email style approach).
 
 - **Provider adapters (ports & adapters)**
-
   - Interfaces like `EmailProvider`, `SmsProvider`.
   - Implementations like `SendGridEmailProvider`, `TwilioSmsProvider` (or stubs for local dev).
   - A single `CommsService` that orchestrates sending, retries, and basic validation.
 
 - **Preferences + compliance hooks**
-
   - Helpers for opt-out / unsubscribe tokens, “do not contact” checks, and quiet hours.
   - Standard metadata fields (campaign name, tags) for analytics.
 
 - **Observability + audit utilities**
-
   - Consistent logging payload shape, correlation ids, and redaction helpers.
   - Optional event emitter hooks (e.g., `message.sent`, `message.failed`) for queues/workers.
 
@@ -256,9 +240,9 @@ A single Prettier config shared across the workspace.
 
 Recommended default stack:
 
-- **unit/integration**: Vitest (web + packages) / Jest (Nest, if desired)
+- **unit/integration**: React Testing / Jest (Nest, if desired)
 - **API e2e**: SuperTest
-- **web e2e** (optional): Playwright
+- **web e2e** (optional): Cypress
 
 ### CI (recommended)
 
@@ -334,7 +318,6 @@ _(Put the shared contracts + guard utilities in **`/packages/auth`** so web + ap
 - **GeoJSON utilities** for boundaries / shapes
 - **Turf.js** for geographic analysis (buffer, intersect, centroid, etc.)
 - Optional:
-
   - Map tiles via OpenStreetMap (dev) and a provider of choice (prod)
   - Clustering for large point sets
 
@@ -347,15 +330,12 @@ The purpose of `/automations` is to make “generate X” a repeatable operation
 Recommended contents:
 
 - `generators/`
-
   - templates for new apps, modules, controllers, React pages, UI components
 
 - `scripts/`
-
   - codegen tasks (ERD, DTOs, OpenAPI, changelog scaffolds)
 
 - `manifests/`
-
   - declarative definitions for blocks, so agents can call `createBlock({ ... })`
 
 ### Examples of automations (recommended)
@@ -430,22 +410,18 @@ All backend apps should be dockerized so local/prod environments behave similarl
 **Recommended approach:**
 
 - Put a `Dockerfile` in each backend app:
-
   - `apps/api/Dockerfile` (NestJS)
   - `apps/cube/Dockerfile` (CubeJS)
 
 - Use **multi-stage builds**:
-
   - **deps** stage: install workspace deps once
   - **build** stage: build only the target app (`pnpm -F <app> build`)
   - **run** stage: copy the built output + minimal runtime deps
 
 - Keep runtime images small:
-
   - copy only `dist/`, `node_modules` (pruned if possible), and required config
 
 - Standardize container conventions across all backend apps:
-
   - `PORT` env var
   - health endpoint (e.g., `GET /health` for Nest)
   - consistent `CMD` (e.g., `node dist/main.js`)
@@ -498,7 +474,6 @@ Add standard scripts in root `package.json`:
 - Keep changes small and generator-friendly.
 - Prefer adding a generator/template over hand-rolling one-off patterns.
 - If you add a new “block type”, also add:
-
   - a manifest entry
   - at least one test
   - a short docs snippet
