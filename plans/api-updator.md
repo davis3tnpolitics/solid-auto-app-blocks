@@ -1,16 +1,18 @@
-### SLICE 1
+### SLICE 1 (done)
 
-okay next let's add a generator that will add CRUD routes for specified data models in a nest api. here's what it needs to do:
-
-0. run db:generate to ensure contracts are up-to-date
-1. run nest generate resource
-2. update DTOs. DTOs come directly from contracts. You'll need to ensure that the CreateDTO and update DTO are compliant with prisma conditions.
-   2.5 Entities need slight updates, you'll just implement the contract there. nothing more is needed
-3. update the controller with nestjs/swagger annotations. We want an ApiTag for each controller. and all responses should be annotated like this:
-   @ApiCreatedResponse({ type: <ContractName> })
-   Basically, you'll be using the contract from the contracts in the database package to easily ensure type safety.
-4. update the services to use prisma
+- Added `automations/generators/api-updator.js` + manifest to scaffold CRUD Nest resources from Prisma contracts:
+  - runs `pnpm --filter database db:generate`
+  - shells `nest g resource` (or falls back) and rewrites DTOs/entities/controllers/services/modules with Swagger annotations + PrismaService wiring
+  - DTOs are derived from contracts while honoring Prisma create/update input types; respects `/*_ no-auto-update _*/` when present
 
 ### SLICE 2
 
-1. add a helper
+1. add a helper component in the nest-helpers package that creates standardized pagination. There should be two things you take care of with this:
+
+- a paginate function that works with GET endpoints to paginate based on the submitted params
+- pagination api responses should have a metadata object and then a data object
+  - metadata should have pageSize, count, pageCount, and pageNumber
+- Plan a POST `/search` generator for all data types:
+  - build a shared search DTO generator (per model) that inspects Prisma metadata and emits filter/sort/pagination DTOs with class-validator decorators
+  - generator should create a `/search` controller route + service method that uses the DTO to construct Prisma queries (filters, pagination, ordering) and returns typed results with metadata
+  - avoid touching files marked with `/*_ no-auto-update _*/`, and expose flags to target specific models so the route can be added alongside the CRUD generator

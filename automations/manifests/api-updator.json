@@ -1,0 +1,31 @@
+{
+  "name": "api-updator",
+  "description": "Generate NestJS CRUD resources using Prisma contracts and wire controllers/services to Prisma with Swagger annotations.",
+  "entry": "node automations/generators/api-updator.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "default": "api",
+      "description": "Target Nest app directory under apps/."
+    },
+    {
+      "flag": "--model",
+      "type": "string",
+      "required": true,
+      "description": "Prisma model name (PascalCase). Use comma-separated values for multiple models."
+    },
+    {
+      "flag": "--resource",
+      "type": "string",
+      "description": "Override the resource path/name (defaults to pluralized kebab-case model name)."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": true,
+      "description": "Overwrite existing files unless a no-auto-update directive is present."
+    }
+  ],
+  "outputs": ["apps/<app>/src/<resource>/**"]
+}
