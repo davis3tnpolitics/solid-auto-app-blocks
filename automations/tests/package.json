@@ -1,0 +1,13 @@
+{
+  "name": "automations-tests",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:update": "vitest run --update"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1"
+  }
+}

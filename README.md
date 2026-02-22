@@ -48,6 +48,7 @@ pnpm install
 Recommended long-term approach is a single root `.env` (with committed `.env.example`) loaded via `packages/config`.
 
 Current repo status:
+
 - `packages/config/src/env.ts` loads root `.env`.
 - `packages/database/.env` also exists for Prisma package-local workflows.
 
@@ -86,6 +87,8 @@ All commands below are intended to be run from the repo root.
 pnpm create:block -- --list
 pnpm create:block -- --block <manifest-name> [manifest options...]
 pnpm gen:examples
+pnpm test:automations
+pnpm test:automations:update
 pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false --skip-db-generate true|false --skip-install true|false
 pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
 pnpm create:nest-app -- --name <app> [--port <port>] [--force]
@@ -96,6 +99,7 @@ pnpm update:api -- --app <nest-app-name> --all
 ```
 
 `pnpm gen:examples` runs a full root-level generation flow:
+
 - creates a Next app (default `example-web` on port `3100`)
 - creates a Nest app (default `example-api` on port `3101`)
 - scaffolds a CRUD resource for one model (default `User`)
@@ -133,6 +137,7 @@ pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 ```
 
 `api-updator` behavior:
+
 - runs `pnpm --filter database db:generate`
 - scaffolds CRUD endpoints/service/module wiring
 - derives DTO fields from Prisma/contracts
@@ -143,6 +148,27 @@ pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 
 `next-app` and `nest-app` run `pnpm install` automatically after generation.
 Use `--skip-install` when chaining multiple generators and installing once at the end.
+
+## Generator testing
+
+Generator tests live in `automations/tests` and are run with:
+
+```bash
+pnpm test:automations
+```
+
+Test coverage includes:
+
+- unit logic in generator helpers (naming/search type/guard behavior)
+- snapshot contracts for high-signal generated files
+- CLI smoke tests through `pnpm create:block`
+- manifest schema/entry validation
+
+Snapshot updates:
+
+```bash
+pnpm test:automations:update
+```
 
 ## Examples
 
@@ -188,4 +214,4 @@ The root `package.json` currently focuses on generation scripts. A typical next 
 
 ## License
 
-Copyright (c) Trenton Davis 2026
+Copyright (c) Trenton Davis 2026 MIT

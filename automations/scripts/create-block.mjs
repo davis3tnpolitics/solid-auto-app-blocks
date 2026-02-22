@@ -2,14 +2,30 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, "../..");
+
+export function resolveRepoRoot() {
+  if (process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT) {
+    return path.resolve(process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT);
+  }
+  return path.resolve(__dirname, "../..");
+}
+
+export function resolveScriptRoot(repoRoot) {
+  if (process.env.SOLID_AUTO_APP_BLOCKS_SCRIPT_ROOT) {
+    return path.resolve(process.env.SOLID_AUTO_APP_BLOCKS_SCRIPT_ROOT);
+  }
+  return repoRoot;
+}
+
+const repoRoot = resolveRepoRoot();
+const scriptRoot = resolveScriptRoot(repoRoot);
 const manifestsDir = path.join(repoRoot, "automations", "manifests");
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     block: undefined,
     list: false,
@@ -46,7 +62,7 @@ function parseArgs(argv) {
   return args;
 }
 
-function loadManifests() {
+export function loadManifests() {
   if (!fs.existsSync(manifestsDir)) return [];
 
   return fs
@@ -64,7 +80,7 @@ function loadManifests() {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function printHelp(manifests) {
+export function printHelp(manifests) {
   console.log("Usage:");
   console.log("  pnpm create:block -- --block <name> [generator flags]");
   console.log("  pnpm create:block -- --list");
@@ -77,7 +93,7 @@ function printHelp(manifests) {
   printManifestList(manifests);
 }
 
-function printManifestList(manifests) {
+export function printManifestList(manifests) {
   console.log("Available blocks:");
   manifests.forEach((manifest) => {
     console.log(`  - ${manifest.name} (${manifest.fileName})`);
@@ -91,14 +107,28 @@ function quoteArg(value) {
   return JSON.stringify(value);
 }
 
-function runBlock(manifest, passthrough) {
+export function resolveManifestEntryCommand(entry) {
+  const trimmed = String(entry).trim();
+  const nodeCommandMatch = trimmed.match(/^node\s+([^\s]+)([\s\S]*)$/);
+  if (!nodeCommandMatch) return trimmed;
+
+  const scriptPath = nodeCommandMatch[1];
+  const remainder = nodeCommandMatch[2] || "";
+  if (path.isAbsolute(scriptPath)) return trimmed;
+
+  const absoluteScriptPath = path.join(scriptRoot, scriptPath);
+  return `node ${quoteArg(absoluteScriptPath)}${remainder}`;
+}
+
+export function runBlock(manifest, passthrough) {
+  const entryCommand = resolveManifestEntryCommand(manifest.entry);
   const quotedArgs = passthrough.map(quoteArg).join(" ");
-  const command = `${manifest.entry}${quotedArgs ? ` ${quotedArgs}` : ""}`;
+  const command = `${entryCommand}${quotedArgs ? ` ${quotedArgs}` : ""}`;
   console.log(`[create-block] ${command}`);
   execSync(command, { cwd: repoRoot, stdio: "inherit" });
 }
 
-function main() {
+export function main() {
   const args = parseArgs(process.argv);
   const manifests = loadManifests();
 
@@ -129,9 +159,15 @@ function main() {
   runBlock(manifest, args.passthrough);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`[create-block] ${error.message}`);
-  process.exit(1);
+const invokedAsScript = process.argv[1]
+  ? pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+  : false;
+
+if (invokedAsScript) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`[create-block] ${error.message}`);
+    process.exit(1);
+  }
 }

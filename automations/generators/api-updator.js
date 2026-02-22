@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 const { repoRoot, parseCliFlags } = require("./_shared/utils");
+const scriptRepoRoot = path.resolve(__dirname, "../..");
 const ts = loadTypeScript();
 
 function main() {
@@ -89,6 +90,10 @@ function loadTypeScript() {
     path.join(repoRoot, "packages", "auth", "node_modules", "typescript"),
     path.join(repoRoot, "packages", "database", "node_modules", "typescript"),
     path.join(repoRoot, "packages", "nest-helpers", "node_modules", "typescript"),
+    path.join(scriptRepoRoot, "packages", "config", "node_modules", "typescript"),
+    path.join(scriptRepoRoot, "packages", "auth", "node_modules", "typescript"),
+    path.join(scriptRepoRoot, "packages", "database", "node_modules", "typescript"),
+    path.join(scriptRepoRoot, "packages", "nest-helpers", "node_modules", "typescript"),
   ];
 
   for (const candidate of candidates) {
@@ -1081,4 +1086,19 @@ function pluralizeWord(value) {
   return `${value}s`;
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  main,
+  readAllPrismaModelNames,
+  getSearchableFields,
+  inferSearchType,
+  writeFileRespectingDirective,
+  hasNoAutoUpdateDirective,
+  pluralizeWord,
+  toCamelCase,
+  toPascalCase,
+  kebabCase,
+};

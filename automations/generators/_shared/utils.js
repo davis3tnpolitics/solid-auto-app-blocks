@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const repoRoot = path.resolve(__dirname, "../../..");
+const repoRoot = process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT
+  ? path.resolve(process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT)
+  : path.resolve(__dirname, "../../..");
 const packagesDir = path.join(repoRoot, "packages");
 
 function toCamelCase(input) {
@@ -75,6 +77,7 @@ function readWorkspacePackages() {
   return fs
     .readdirSync(packagesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map((entry) => {
       const packageJsonPath = path.join(packagesDir, entry.name, "package.json");
       if (!fs.existsSync(packageJsonPath)) return null;

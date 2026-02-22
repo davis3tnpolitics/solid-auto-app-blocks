@@ -1,0 +1,555 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generator contract snapshots > snapshots api-updator generated contracts 1`] = `
+"import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiTags, getSchemaPath } from "@nestjs/swagger";
+import { User } from "database/contracts/models/User.model";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { PaginationQueryDto } from "./dto/pagination-query.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { UsersService } from "./users.service";
+
+import { SearchUserDto } from "./dto/search-user.dto";
+
+@ApiTags("User")
+@ApiExtraModels(User)
+@Controller("users")
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  @ApiCreatedResponse({ type: User })
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
+
+  @Get()
+  @ApiOkResponse({
+    schema: {
+      type: "object",
+      properties: {
+        metadata: {
+          type: "object",
+          properties: {
+            pageSize: { type: "number" },
+            count: { type: "number" },
+            pageCount: { type: "number" },
+            pageNumber: { type: "number" },
+          },
+          required: ["pageSize", "count", "pageCount", "pageNumber"],
+        },
+        data: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: getSchemaPath(User) },
+            },
+          },
+          required: ["items"],
+        },
+      },
+      required: ["metadata", "data"],
+    },
+  })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.usersService.findAll(query);
+  }
+
+  @Post("search")
+  @ApiOkResponse({
+    schema: {
+      type: "object",
+      properties: {
+        metadata: {
+          type: "object",
+          properties: {
+            pageSize: { type: "number" },
+            count: { type: "number" },
+            pageCount: { type: "number" },
+            pageNumber: { type: "number" },
+          },
+          required: ["pageSize", "count", "pageCount", "pageNumber"],
+        },
+        data: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: getSchemaPath(User) },
+            },
+          },
+          required: ["items"],
+        },
+      },
+      required: ["metadata", "data"],
+    },
+  })
+  search(@Body() query: SearchUserDto) {
+    return this.usersService.search(query);
+  }
+
+
+  @Get(":id")
+  @ApiOkResponse({ type: User })
+  findOne(@Param("id") id: string) {
+    return this.usersService.findOne(id);
+  }
+
+  @Patch(":id")
+  @ApiOkResponse({ type: User })
+  update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(":id")
+  @ApiOkResponse({ type: User })
+  remove(@Param("id") id: string) {
+    return this.usersService.remove(id);
+  }
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots api-updator generated contracts 2`] = `
+"import { Injectable } from "@nestjs/common";
+import { createPaginatedResponse, paginate } from "nest-helpers";
+import { PrismaService } from "../database/prisma.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { PaginationQueryDto } from "./dto/pagination-query.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+
+import { Prisma } from "database/client/prisma/client";
+import { UserSearchFiltersDto, SearchUserDto } from "./dto/search-user.dto";
+
+@Injectable()
+export class UsersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  create(data: CreateUserDto) {
+    return this.prisma.user.create({ data });
+  }
+
+  async findAll(query: PaginationQueryDto) {
+    const pagination = paginate(query);
+    const [items, count] = await Promise.all([
+      this.prisma.user.findMany({
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    return createPaginatedResponse(items, count, pagination);
+  }
+
+  findOne(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  update(id: string, data: UpdateUserDto) {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  remove(id: string) {
+    return this.prisma.user.delete({ where: { id } });
+  }
+
+  async search(query: SearchUserDto) {
+    const pagination = paginate(query);
+    const where = this.buildSearchWhere(query.filters);
+    const orderBy = query.sortField
+      ? ([{ [query.sortField]: query.sortDirection ?? "asc" }] as Prisma.UserOrderByWithRelationInput[])
+      : undefined;
+
+    const [items, count] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return createPaginatedResponse(items, count, pagination);
+  }
+
+  private buildSearchWhere(filters?: UserSearchFiltersDto): Prisma.UserWhereInput {
+    if (!filters) return {};
+
+    const where: Prisma.UserWhereInput = {};
+    const mutableWhere = where as Record<string, unknown>;
+    if (filters.id !== undefined) {
+      mutableWhere["id"] = filters.id;
+    }
+    if (filters.idContains) {
+      const filter = this.toFilterObject(mutableWhere["id"]);
+      mutableWhere["id"] = {
+        ...filter,
+        contains: filters.idContains,
+        mode: "insensitive",
+      };
+    }
+    if (filters.idIn?.length) {
+      const filter = this.toFilterObject(mutableWhere["id"]);
+      mutableWhere["id"] = {
+        ...filter,
+        in: filters.idIn,
+      };
+    }
+    if (filters.email !== undefined) {
+      mutableWhere["email"] = filters.email;
+    }
+    if (filters.emailContains) {
+      const filter = this.toFilterObject(mutableWhere["email"]);
+      mutableWhere["email"] = {
+        ...filter,
+        contains: filters.emailContains,
+        mode: "insensitive",
+      };
+    }
+    if (filters.emailIn?.length) {
+      const filter = this.toFilterObject(mutableWhere["email"]);
+      mutableWhere["email"] = {
+        ...filter,
+        in: filters.emailIn,
+      };
+    }
+    if (filters.name !== undefined) {
+      mutableWhere["name"] = filters.name;
+    }
+    if (filters.nameContains) {
+      const filter = this.toFilterObject(mutableWhere["name"]);
+      mutableWhere["name"] = {
+        ...filter,
+        contains: filters.nameContains,
+        mode: "insensitive",
+      };
+    }
+    if (filters.nameIn?.length) {
+      const filter = this.toFilterObject(mutableWhere["name"]);
+      mutableWhere["name"] = {
+        ...filter,
+        in: filters.nameIn,
+      };
+    }
+    if (filters.age !== undefined) {
+      mutableWhere["age"] = filters.age;
+    }
+    if (
+      filters.ageMin !== undefined ||
+      filters.ageMax !== undefined ||
+      filters.ageIn?.length
+    ) {
+      const filter = this.toFilterObject(mutableWhere["age"]);
+      if (filters.ageMin !== undefined) filter.gte = filters.ageMin;
+      if (filters.ageMax !== undefined) filter.lte = filters.ageMax;
+      if (filters.ageIn?.length) filter.in = filters.ageIn;
+      mutableWhere["age"] = filter;
+    }
+    if (filters.isActive !== undefined) {
+      mutableWhere["isActive"] = filters.isActive;
+    }
+    if (filters.createdAt) {
+      mutableWhere["createdAt"] = new Date(filters.createdAt);
+    }
+    if (filters.createdAtFrom || filters.createdAtTo) {
+      const filter = this.toFilterObject(mutableWhere["createdAt"]);
+      if (filters.createdAtFrom) filter.gte = new Date(filters.createdAtFrom);
+      if (filters.createdAtTo) filter.lte = new Date(filters.createdAtTo);
+      mutableWhere["createdAt"] = filter;
+    }
+    return where;
+  }
+
+  private toFilterObject(value: unknown): Record<string, unknown> {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      return { ...(value as Record<string, unknown>) };
+    }
+    return {};
+  }
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots api-updator generated contracts 3`] = `
+"import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import { PaginationQueryDto } from "./pagination-query.dto";
+
+export const UserSortFields = ["id", "email", "name", "age", "isActive", "createdAt"] as const;
+export type UserSortField = (typeof UserSortFields)[number];
+
+export class UserSearchFiltersDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiPropertyOptional({ description: "Case-insensitive contains match for id" })
+  @IsOptional()
+  @IsString()
+  idContains?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  idIn?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiPropertyOptional({ description: "Case-insensitive contains match for email" })
+  @IsOptional()
+  @IsString()
+  emailContains?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  emailIn?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ description: "Case-insensitive contains match for name" })
+  @IsOptional()
+  @IsString()
+  nameContains?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  nameIn?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  age?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  ageMin?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  ageMax?: number;
+
+  @ApiPropertyOptional({ type: [Number] })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  ageIn?: number[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  createdAt?: string;
+
+  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  createdAtFrom?: string;
+
+  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  createdAtTo?: string;
+
+}
+
+export class SearchUserDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ type: () => UserSearchFiltersDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UserSearchFiltersDto)
+  filters?: UserSearchFiltersDto;
+
+  @ApiPropertyOptional({
+    enum: UserSortFields,
+    description: "Field to sort by",
+  })
+  @IsOptional()
+  @IsIn([...UserSortFields])
+  sortField?: UserSortField;
+
+  @ApiPropertyOptional({
+    enum: ["asc", "desc"],
+    default: "asc",
+  })
+  @IsOptional()
+  @IsIn(["asc", "desc"])
+  sortDirection?: "asc" | "desc";
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots nest-app core files 1`] = `
+"import "reflect-metadata";
+import { ValidationPipe } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { getOptionalEnv } from "config";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidUnknownValues: false,
+    })
+  );
+
+  const nodeEnv = (getOptionalEnv("NODE_ENV") ?? "development").toLowerCase();
+  if (nodeEnv === "development" || nodeEnv === "dev") {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle("API")
+      .setDescription("API docs")
+      .setVersion("1.0.0")
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup("/docs", app, document);
+  }
+
+  const port = Number(getOptionalEnv("PORT")) || 3331;
+  await app.listen(port);
+  console.log(\`API listening on http://localhost:\${port}\`);
+}
+
+bootstrap();
+"
+`;
+
+exports[`generator contract snapshots > snapshots nest-app core files 2`] = `
+"import { UsersModule } from "./users/users.module";
+import { Module } from "@nestjs/common";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { HealthModule } from "./health/health.module";
+import { PrismaService } from "./database/prisma.service";
+
+@Module({
+  imports: [HealthModule, UsersModule],
+  controllers: [AppController],
+  providers: [AppService, PrismaService],
+})
+export class AppModule {}
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-app core files 1`] = `
+"{
+  "name": "snapshot-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.1.1",
+    "next-auth": "^5.0.0-beta.19",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "auth": "workspace:*",
+    "communications": "workspace:*",
+    "config": "workspace:*",
+    "database": "workspace:*",
+    "nest-helpers": "workspace:*",
+    "@workspace/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-app core files 2`] = `
+"export default function Page() {
+  const workspacePackages = [
+  "@workspace/ui",
+  "auth",
+  "communications",
+  "config",
+  "database",
+  "nest-helpers"
+];
+
+  return (
+    <main className="page">
+      <header>
+        <p className="eyebrow">Next.js App</p>
+        <h1>snapshot-web</h1>
+        <p>Generated via <code>automations/generators/next-app.js</code>.</p>
+      </header>
+
+      <section>
+        <h2>Workspace packages</h2>
+        <ul>
+            <li key="@workspace/ui">@workspace/ui</li>
+            <li key="auth">auth</li>
+            <li key="communications">communications</li>
+            <li key="config">config</li>
+            <li key="database">database</li>
+            <li key="nest-helpers">nest-helpers</li>
+        </ul>
+      </section>
+        <section>
+          <h2>Getting started</h2>
+          <ol>
+            <li>Run <code>pnpm install</code> at the repo root.</li>
+            <li>Start this app with <code>pnpm --filter snapshot-web dev</code>.</li>
+            <li>Add routes or components in <code>src/app</code>.</li>
+          </ol>
+        </section>
+
+      <section>
+        <p>Need API health? Try <code>/api/health</code>.</p>
+      </section>
+    </main>
+  );
+}
+"
+`;
