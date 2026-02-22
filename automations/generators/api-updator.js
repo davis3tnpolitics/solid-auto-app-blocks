@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-const ts = require("typescript");
-const pluralize = require("pluralize");
 const { execSync } = require("child_process");
 const { repoRoot, parseCliFlags } = require("./_shared/utils");
+const ts = loadTypeScript();
 
 function main() {
   try {
@@ -32,13 +31,15 @@ function main() {
       throw new Error(`App not found at ${appDir}`);
     }
 
+    ensureWorkspaceDependency({ appDir, dependencyName: "nest-helpers" });
+
     runDbGenerate();
 
     models.forEach((modelNameRaw) => {
       const modelName = toPascalCase(modelNameRaw);
       const resourceName = flags.resource
         ? kebabCase(flags.resource)
-        : pluralize(kebabCase(modelName));
+        : pluralizeWord(kebabCase(modelName));
 
       scaffoldCrudResource({
         appName,
@@ -60,6 +61,28 @@ function main() {
   }
 }
 
+function loadTypeScript() {
+  const candidates = [
+    "typescript",
+    path.join(repoRoot, "packages", "config", "node_modules", "typescript"),
+    path.join(repoRoot, "packages", "auth", "node_modules", "typescript"),
+    path.join(repoRoot, "packages", "database", "node_modules", "typescript"),
+    path.join(repoRoot, "packages", "nest-helpers", "node_modules", "typescript"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch (error) {
+      continue;
+    }
+  }
+
+  throw new Error(
+    'Could not resolve "typescript" for api-updator. Run "pnpm install" at the repo root.'
+  );
+}
+
 function runDbGenerate() {
   try {
     execSync("pnpm --filter database db:generate", {
@@ -69,6 +92,37 @@ function runDbGenerate() {
   } catch (error) {
     throw new Error(`Failed to run "pnpm --filter database db:generate" (${error.message})`);
   }
+}
+
+function ensureWorkspaceDependency({ appDir, dependencyName }) {
+  const packageJsonPath = path.join(appDir, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    console.warn(
+      `[api-updator] package.json not found at ${packageJsonPath}; skipping dependency update for ${dependencyName}.`
+    );
+    return;
+  }
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+  const hasDependency = Boolean(
+    packageJson.dependencies?.[dependencyName] ||
+      packageJson.devDependencies?.[dependencyName] ||
+      packageJson.peerDependencies?.[dependencyName]
+  );
+
+  if (hasDependency) return;
+
+  packageJson.dependencies = {
+    ...(packageJson.dependencies || {}),
+    [dependencyName]: "workspace:*",
+  };
+
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+  console.log(
+    `[api-updator] Added workspace dependency "${dependencyName}" to apps/${path.basename(
+      appDir
+    )}/package.json`
+  );
 }
 
 function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force }) {
@@ -82,6 +136,7 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force 
 
   const createDtoPath = path.join(resourceDir, "dto", `create-${modelSlug}.dto.ts`);
   const updateDtoPath = path.join(resourceDir, "dto", `update-${modelSlug}.dto.ts`);
+  const paginationQueryDtoPath = path.join(resourceDir, "dto", "pagination-query.dto.ts");
   const entityPath = path.join(resourceDir, "entities", `${modelSlug}.entity.ts`);
   const servicePath = path.join(resourceDir, `${resourceName}.service.ts`);
   const controllerPath = path.join(resourceDir, `${resourceName}.controller.ts`);
@@ -95,6 +150,11 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force 
   writeFileRespectingDirective(
     updateDtoPath,
     buildUpdateDtoContent(modelName, createDtoPath),
+    force
+  );
+  writeFileRespectingDirective(
+    paginationQueryDtoPath,
+    buildPaginationQueryDtoContent(),
     force
   );
   writeFileRespectingDirective(entityPath, buildEntityContent(modelName), force);
@@ -316,14 +376,81 @@ export class ${modelName}Entity implements ${modelName} {}
 `;
 }
 
+function buildPaginationQueryDtoContent() {
+  return `import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, Max, Min } from "class-validator";
+
+export class PaginationQueryDto {
+  @ApiPropertyOptional({
+    description: "1-based page number",
+    minimum: 1,
+    default: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  pageNumber?: number;
+
+  @ApiPropertyOptional({
+    description: "Alias for pageNumber",
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({
+    description: "Items per page",
+    minimum: 1,
+    maximum: 100,
+    default: 25,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
+
+  @ApiPropertyOptional({
+    description: "Alias for pageSize",
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    description: "Absolute row offset; overrides page/pageNumber when provided",
+    minimum: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
+}
+`;
+}
+
 function buildServiceContent({ modelName, resourceName }) {
   const resourceClassName = toPascalCase(resourceName);
   const prismaProperty = toCamelCase(modelName);
   const dtoBase = kebabCase(modelName);
 
   return `import { Injectable } from "@nestjs/common";
+import { createPaginatedResponse, paginate } from "nest-helpers";
 import { PrismaService } from "../database/prisma.service";
 import { Create${modelName}Dto } from "./dto/create-${dtoBase}.dto";
+import { PaginationQueryDto } from "./dto/pagination-query.dto";
 import { Update${modelName}Dto } from "./dto/update-${dtoBase}.dto";
 
 @Injectable()
@@ -334,8 +461,17 @@ export class ${resourceClassName}Service {
     return this.prisma.${prismaProperty}.create({ data });
   }
 
-  findAll() {
-    return this.prisma.${prismaProperty}.findMany();
+  async findAll(query: PaginationQueryDto) {
+    const pagination = paginate(query);
+    const [items, count] = await Promise.all([
+      this.prisma.${prismaProperty}.findMany({
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.${prismaProperty}.count(),
+    ]);
+
+    return createPaginatedResponse(items, count, pagination);
   }
 
   findOne(id: string) {
@@ -358,14 +494,16 @@ function buildControllerContent({ modelName, resourceName }) {
   const routePath = resourceName.toLowerCase();
   const dtoBase = kebabCase(modelName);
 
-  return `import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+  return `import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiTags, getSchemaPath } from "@nestjs/swagger";
 import { ${modelName} } from "database/contracts/models/${modelName}.model";
 import { Create${modelName}Dto } from "./dto/create-${dtoBase}.dto";
+import { PaginationQueryDto } from "./dto/pagination-query.dto";
 import { Update${modelName}Dto } from "./dto/update-${dtoBase}.dto";
 import { ${resourceClassName}Service } from "./${resourceName}.service";
 
 @ApiTags("${modelName}")
+@ApiExtraModels(${modelName})
 @Controller("${routePath}")
 export class ${resourceClassName}Controller {
   constructor(private readonly ${toCamelCase(resourceName)}Service: ${resourceClassName}Service) {}
@@ -377,9 +515,36 @@ export class ${resourceClassName}Controller {
   }
 
   @Get()
-  @ApiOkResponse({ type: ${modelName}, isArray: true })
-  findAll() {
-    return this.${toCamelCase(resourceName)}Service.findAll();
+  @ApiOkResponse({
+    schema: {
+      type: "object",
+      properties: {
+        metadata: {
+          type: "object",
+          properties: {
+            pageSize: { type: "number" },
+            count: { type: "number" },
+            pageCount: { type: "number" },
+            pageNumber: { type: "number" },
+          },
+          required: ["pageSize", "count", "pageCount", "pageNumber"],
+        },
+        data: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: getSchemaPath(${modelName}) },
+            },
+          },
+          required: ["items"],
+        },
+      },
+      required: ["metadata", "data"],
+    },
+  })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.${toCamelCase(resourceName)}Service.findAll(query);
   }
 
   @Get(":id")
@@ -529,6 +694,13 @@ function kebabCase(value) {
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
     .replace(/[_\s]+/g, "-")
     .toLowerCase();
+}
+
+function pluralizeWord(value) {
+  if (value.endsWith("ch") || value.endsWith("sh")) return `${value}es`;
+  if (/[sxz]$/.test(value)) return `${value}es`;
+  if (/[^aeiou]y$/.test(value)) return `${value.slice(0, -1)}ies`;
+  return `${value}s`;
 }
 
 main();

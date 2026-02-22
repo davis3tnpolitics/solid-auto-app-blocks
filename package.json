@@ -4,6 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "create:next-app": "node automations/generators/next-app.js",
+    "create:nest-app": "node automations/generators/nest-app.js",
+    "add:auth": "node automations/generators/front-end/add-ons/add-auth.js",
+    "update:api": "node automations/generators/api-updator.js",
+    "gen:examples": "node automations/scripts/gen-examples.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

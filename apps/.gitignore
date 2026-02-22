@@ -1,0 +1,27 @@
+# Dependency artifacts
+*/node_modules/
+*/pnpm-lock.yaml
+
+# Build artifacts
+*/.next/
+*/out/
+*/dist/
+*/build/
+*/coverage/
+*/.turbo/
+*/.vercel/
+
+# Environment files
+*/.env
+*/.env.*
+!*/.env.example
+
+# Generated caches and misc
+*/.pnpm-debug.log*
+*/npm-debug.log*
+*/yarn-debug.log*
+*/yarn-error.log*
+*/.DS_Store
+*/next-env.d.ts
+*/tsconfig.tsbuildinfo
+*/.eslintcache

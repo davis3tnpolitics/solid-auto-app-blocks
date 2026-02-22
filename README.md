@@ -78,30 +78,48 @@ pnpm --filter web dev
 ## Automation generators
 
 Generators are implemented in `automations/generators/*` with matching manifests in `automations/manifests/*`.
+All commands below are intended to be run from the repo root.
+
+### Root scripts
+
+```bash
+pnpm gen:examples
+pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false
+pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
+pnpm create:nest-app -- --name <app> [--port <port>] [--force]
+pnpm add:auth -- --app <next-app-name> [--force]
+pnpm update:api -- --app <nest-app-name> --model <Model>
+pnpm update:api -- --app <nest-app-name> --models User,Account,Session
+```
+
+`pnpm gen:examples` runs a full root-level generation flow:
+- creates a Next app (default `example-web` on port `3100`)
+- creates a Nest app (default `example-api` on port `3101`)
+- scaffolds a CRUD resource for one model (default `User`)
 
 ### Create a Next.js app
 
 ```bash
-node automations/generators/next-app.js --name admin --port 3002
+pnpm create:next-app -- --name admin --port 3002
 ```
 
 ### Create a NestJS app
 
 ```bash
-node automations/generators/nest-app.js --name api --port 3001
+pnpm create:nest-app -- --name api --port 3001
 ```
 
 ### Add Auth.js scaffolding to an existing Next app
 
 ```bash
-node automations/generators/front-end/add-ons/add-auth.js --app web
+pnpm add:auth -- --app web
 ```
 
 ### Generate Nest CRUD resource(s) from Prisma contracts
 
 ```bash
-node automations/generators/api-updator.js --app api --model User
-node automations/generators/api-updator.js --app api --models User,Account,Session
+pnpm update:api -- --app api --model User
+pnpm update:api -- --app api --models User,Account,Session
 ```
 
 `api-updator` behavior:
@@ -109,6 +127,10 @@ node automations/generators/api-updator.js --app api --models User,Account,Sessi
 - scaffolds CRUD endpoints/service/module wiring
 - derives DTO fields from Prisma/contracts
 - respects `/*_ no-auto-update _*/` markers when present
+
+## Examples
+
+See `examples/README.md` for concrete frontend/backend generation commands and a paginated CRUD example flow.
 
 ## Useful package commands
 
@@ -140,7 +162,7 @@ pnpm --filter @workspace/ui typecheck
 
 ## Suggested root scripts (next step)
 
-The root `package.json` is still minimal. A typical next step is adding workspace-wide scripts such as:
+The root `package.json` currently focuses on generation scripts. A typical next step is adding workspace-wide scripts such as:
 
 - `dev`: `turbo run dev --parallel`
 - `build`: `turbo run build`
