@@ -53,7 +53,10 @@ After generating `example-api`, scaffold a model resource using `api-updator` (m
 
 ```bash
 pnpm update:api -- --app example-api --model User
+pnpm update:api -- --app example-api --all
 ```
+
+`--all` reads model names from Prisma schema files in `packages/database/prisma/**/*.prisma`.
 
 This generates:
 

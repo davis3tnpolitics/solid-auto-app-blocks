@@ -7,24 +7,20 @@ const ts = loadTypeScript();
 
 function main() {
   try {
-    const flags = parseCliFlags({ app: "api", force: true });
+    const flags = parseCliFlags({ app: "api", force: true, all: false });
     const appName = flags.app || flags.appName;
     const modelsInput = flags.models || flags.model || flags.entity;
+    const useAllModels = Boolean(flags.all);
 
     if (!appName) {
       throw new Error('Provide a Nest app name with "--app <name>".');
     }
 
-    if (!modelsInput) {
+    if (!useAllModels && !modelsInput) {
       throw new Error(
-        'Provide at least one model with "--model <Model>" or "--models ModelA,ModelB".'
+        'Provide at least one model with "--model <Model>" or "--models ModelA,ModelB", or pass "--all".'
       );
     }
-
-    const models = String(modelsInput)
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
 
     const appDir = path.join(repoRoot, "apps", appName);
     if (!fs.existsSync(appDir)) {
@@ -34,6 +30,19 @@ function main() {
     ensureWorkspaceDependency({ appDir, dependencyName: "nest-helpers" });
 
     runDbGenerate();
+
+    const models = useAllModels
+      ? readAllPrismaModelNames()
+      : String(modelsInput)
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean);
+
+    if (!models.length) {
+      throw new Error(
+        'No models were found to update. Ensure database contracts are generated or provide "--model".'
+      );
+    }
 
     models.forEach((modelNameRaw) => {
       const modelName = toPascalCase(modelNameRaw);
@@ -81,6 +90,49 @@ function loadTypeScript() {
   throw new Error(
     'Could not resolve "typescript" for api-updator. Run "pnpm install" at the repo root.'
   );
+}
+
+function readAllPrismaModelNames() {
+  const prismaDir = path.join(repoRoot, "packages", "database", "prisma");
+  if (!fs.existsSync(prismaDir)) {
+    throw new Error(
+      `Prisma directory not found at ${prismaDir}.`
+    );
+  }
+
+  const prismaFiles = listFilesRecursively(prismaDir).filter((filePath) =>
+    filePath.endsWith(".prisma")
+  );
+  const modelNamePattern = /^\s*model\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/gm;
+  const names = [];
+
+  prismaFiles.forEach((filePath) => {
+    const source = fs.readFileSync(filePath, "utf8");
+    let match = modelNamePattern.exec(source);
+    while (match) {
+      names.push(match[1]);
+      match = modelNamePattern.exec(source);
+    }
+    modelNamePattern.lastIndex = 0;
+  });
+
+  return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+}
+
+function listFilesRecursively(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files = [];
+
+  entries.forEach((entry) => {
+    const absolutePath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listFilesRecursively(absolutePath));
+      return;
+    }
+    files.push(absolutePath);
+  });
+
+  return files;
 }
 
 function runDbGenerate() {

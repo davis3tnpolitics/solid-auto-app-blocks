@@ -12,8 +12,14 @@
     {
       "flag": "--model",
       "type": "string",
-      "required": true,
+      "required": false,
       "description": "Prisma model name (PascalCase). Use comma-separated values for multiple models."
+    },
+    {
+      "flag": "--all",
+      "type": "boolean",
+      "default": false,
+      "description": "Generate resources for all models discovered in Prisma schema files under packages/database/prisma."
     },
     {
       "flag": "--resource",

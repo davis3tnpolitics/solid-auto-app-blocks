@@ -90,6 +90,7 @@ pnpm create:nest-app -- --name <app> [--port <port>] [--force]
 pnpm add:auth -- --app <next-app-name> [--force]
 pnpm update:api -- --app <nest-app-name> --model <Model>
 pnpm update:api -- --app <nest-app-name> --models User,Account,Session
+pnpm update:api -- --app <nest-app-name> --all
 ```
 
 `pnpm gen:examples` runs a full root-level generation flow:
@@ -120,12 +121,14 @@ pnpm add:auth -- --app web
 ```bash
 pnpm update:api -- --app api --model User
 pnpm update:api -- --app api --models User,Account,Session
+pnpm update:api -- --app api --all
 ```
 
 `api-updator` behavior:
 - runs `pnpm --filter database db:generate`
 - scaffolds CRUD endpoints/service/module wiring
 - derives DTO fields from Prisma/contracts
+- `--all` discovers model names from Prisma schema files (`packages/database/prisma/**/*.prisma`)
 - respects `/*_ no-auto-update _*/` markers when present
 
 ## Examples
