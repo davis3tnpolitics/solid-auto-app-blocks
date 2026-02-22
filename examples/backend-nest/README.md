@@ -11,7 +11,7 @@ pnpm gen:examples
 Generate backend only (manual):
 
 ```bash
-pnpm create:nest-app -- --name example-api --port 3101
+pnpm create:block -- --block nest-app --name example-api --port 3101
 ```
 
 Run:
@@ -23,7 +23,8 @@ pnpm --filter example-api start:dev
 Add a generated resource with pagination DTO wiring:
 
 ```bash
-pnpm update:api -- --app example-api --model User
+pnpm create:block -- --block api-updator --app example-api --model User
+pnpm create:block -- --block api-updator --app example-api --all --skip-db-generate
 ```
 
 Smoke test:

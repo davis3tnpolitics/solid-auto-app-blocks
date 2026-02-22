@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 const {
   repoRoot,
   parseCliFlags,
@@ -11,8 +12,9 @@ const {
 
 function main() {
   try {
-    const flags = parseCliFlags({ port: 3001, force: false });
+    const flags = parseCliFlags({ port: 3001, force: false, install: true });
     const appName = flags.name || flags.app || flags.appName;
+    const shouldInstall = flags.install !== false && flags.skipInstall !== true;
 
     if (!appName) {
       throw new Error('Provide an app name with "--name <appName>".');
@@ -35,10 +37,25 @@ function main() {
       force: Boolean(flags.force),
     });
 
+    if (shouldInstall) {
+      runWorkspaceInstall();
+    }
+
     console.log(`[nest-app] Created NestJS app at apps/${appName}`);
   } catch (error) {
     console.error(`[nest-app] ${error.message}`);
     process.exit(1);
+  }
+}
+
+function runWorkspaceInstall() {
+  try {
+    execSync("pnpm install", {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+  } catch (error) {
+    throw new Error(`Failed to run "pnpm install" after app creation (${error.message})`);
   }
 }
 
@@ -114,7 +131,6 @@ function createPackageJson(appName, packages) {
       eslint: "^9",
       "@typescript-eslint/eslint-plugin": "^8.52.0",
       "@typescript-eslint/parser": "^8.52.0",
-      "@nestjs/eslint-plugin": "^11.0.0",
     },
     engines: {
       node: ">=18.18.0",
@@ -182,12 +198,11 @@ module.exports = {
     project: "./tsconfig.json",
     sourceType: "module",
   },
-  plugins: ["@typescript-eslint", "@nestjs/eslint-plugin"],
+  plugins: ["@typescript-eslint"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    "plugin:@nestjs/eslint-plugin/recommended",
     require.resolve("../../packages/config/eslintrc.cjs"),
   ],
   env: {

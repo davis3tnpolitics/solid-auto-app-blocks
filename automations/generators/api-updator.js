@@ -7,10 +7,17 @@ const ts = loadTypeScript();
 
 function main() {
   try {
-    const flags = parseCliFlags({ app: "api", force: true, all: false });
+    const flags = parseCliFlags({
+      app: "api",
+      force: true,
+      all: false,
+      search: true,
+      skipDbGenerate: false,
+    });
     const appName = flags.app || flags.appName;
     const modelsInput = flags.models || flags.model || flags.entity;
     const useAllModels = Boolean(flags.all);
+    const includeSearch = flags.search !== false;
 
     if (!appName) {
       throw new Error('Provide a Nest app name with "--app <name>".');
@@ -29,7 +36,11 @@ function main() {
 
     ensureWorkspaceDependency({ appDir, dependencyName: "nest-helpers" });
 
-    runDbGenerate();
+    if (!flags.skipDbGenerate) {
+      runDbGenerate();
+    } else {
+      console.log("[api-updator] Skipping database db:generate (--skip-db-generate).");
+    }
 
     const models = useAllModels
       ? readAllPrismaModelNames()
@@ -56,6 +67,7 @@ function main() {
         modelName,
         resourceName,
         force: Boolean(flags.force),
+        includeSearch,
       });
     });
 
@@ -177,7 +189,7 @@ function ensureWorkspaceDependency({ appDir, dependencyName }) {
   );
 }
 
-function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force }) {
+function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force, includeSearch }) {
   const resourceDir = path.join(appDir, "src", resourceName);
   const modelSlug = kebabCase(modelName);
 
@@ -185,10 +197,12 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force 
 
   const prismaFields = readPrismaCreateFields(modelName);
   const contractFields = readContractFields(modelName);
+  const searchableFields = getSearchableFields(contractFields);
 
   const createDtoPath = path.join(resourceDir, "dto", `create-${modelSlug}.dto.ts`);
   const updateDtoPath = path.join(resourceDir, "dto", `update-${modelSlug}.dto.ts`);
   const paginationQueryDtoPath = path.join(resourceDir, "dto", "pagination-query.dto.ts");
+  const searchDtoPath = path.join(resourceDir, "dto", `search-${modelSlug}.dto.ts`);
   const entityPath = path.join(resourceDir, "entities", `${modelSlug}.entity.ts`);
   const servicePath = path.join(resourceDir, `${resourceName}.service.ts`);
   const controllerPath = path.join(resourceDir, `${resourceName}.controller.ts`);
@@ -209,15 +223,22 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force 
     buildPaginationQueryDtoContent(),
     force
   );
+  if (includeSearch) {
+    writeFileRespectingDirective(
+      searchDtoPath,
+      buildSearchDtoContent({ modelName, searchableFields }),
+      force
+    );
+  }
   writeFileRespectingDirective(entityPath, buildEntityContent(modelName), force);
   writeFileRespectingDirective(
     servicePath,
-    buildServiceContent({ modelName, resourceName }),
+    buildServiceContent({ modelName, resourceName, includeSearch, searchableFields }),
     force
   );
   writeFileRespectingDirective(
     controllerPath,
-    buildControllerContent({ modelName, resourceName }),
+    buildControllerContent({ modelName, resourceName, includeSearch }),
     force
   );
   writeFileRespectingDirective(
@@ -306,6 +327,7 @@ function readContractFields(modelName) {
 
   const source = fs.readFileSync(contractPath, "utf8");
   const ast = ts.createSourceFile(contractPath, source, ts.ScriptTarget.Latest, true);
+  const printer = ts.createPrinter({ removeComments: true });
   const fields = [];
 
   ast.forEachChild((node) => {
@@ -318,6 +340,9 @@ function readContractFields(modelName) {
       fields.push({
         name: member.name.text,
         optional: Boolean(member.questionToken),
+        type: member.type
+          ? printer.printNode(ts.EmitHint.Unspecified, member.type, ast).trim()
+          : "unknown",
       });
     });
   });
@@ -327,6 +352,40 @@ function readContractFields(modelName) {
   }
 
   return fields;
+}
+
+function getSearchableFields(contractFields) {
+  return contractFields
+    .map((field) => ({
+      ...field,
+      searchType: inferSearchType(field.type),
+    }))
+    .filter((field) => Boolean(field.searchType));
+}
+
+function inferSearchType(typeText = "") {
+  const normalized = String(typeText).replace(/\s+/g, "").toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes("[]")) return null;
+  if (
+    normalized.includes("date") ||
+    normalized.includes("datetime") ||
+    normalized.includes("timestamp")
+  ) {
+    return "date";
+  }
+  if (normalized.includes("boolean")) return "boolean";
+  if (
+    normalized.includes("number") ||
+    normalized.includes("int") ||
+    normalized.includes("float") ||
+    normalized.includes("decimal") ||
+    normalized.includes("bigint")
+  ) {
+    return "number";
+  }
+  if (normalized.includes("string") || normalized.includes("uuid")) return "string";
+  return null;
 }
 
 function buildDtoContent({ modelName, prismaFields, contractFields }) {
@@ -493,10 +552,148 @@ export class PaginationQueryDto {
 `;
 }
 
-function buildServiceContent({ modelName, resourceName }) {
+function buildSearchDtoContent({ modelName, searchableFields }) {
+  const dtoBase = kebabCase(modelName);
+  const filtersClassName = `${modelName}SearchFiltersDto`;
+  const dtoClassName = `Search${modelName}Dto`;
+  const sortFieldsConst = `${modelName}SortFields`;
+  const sortFieldType = `${modelName}SortField`;
+  const sortFields = searchableFields.map((field) => field.name);
+  const sortFieldEntries = sortFields.length ? asQuotedList(sortFields) : "";
+  const filterProperties = searchableFields
+    .map((field) => buildSearchFilterProperty(field))
+    .join("\n\n");
+
+  return `import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import { PaginationQueryDto } from "./pagination-query.dto";
+
+${sortFields.length ? `export const ${sortFieldsConst} = [${sortFieldEntries}] as const;` : `export const ${sortFieldsConst} = [] as const;`}
+export type ${sortFieldType} = (typeof ${sortFieldsConst})[number];
+
+export class ${filtersClassName} {
+${filterProperties ? `${filterProperties}\n` : ""}
+}
+
+export class ${dtoClassName} extends PaginationQueryDto {
+  @ApiPropertyOptional({ type: () => ${filtersClassName} })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ${filtersClassName})
+  filters?: ${filtersClassName};
+
+  @ApiPropertyOptional({
+    enum: ${sortFieldsConst},
+    description: "Field to sort by",
+  })
+  @IsOptional()
+  @IsIn([...${sortFieldsConst}])
+  sortField?: ${sortFieldType};
+
+  @ApiPropertyOptional({
+    enum: ["asc", "desc"],
+    default: "asc",
+  })
+  @IsOptional()
+  @IsIn(["asc", "desc"])
+  sortDirection?: "asc" | "desc";
+}
+`;
+}
+
+function buildSearchFilterProperty(field) {
+  const { name, searchType } = field;
+
+  if (searchType === "string") {
+    return `  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  ${name}?: string;
+
+  @ApiPropertyOptional({ description: "Case-insensitive contains match for ${name}" })
+  @IsOptional()
+  @IsString()
+  ${name}Contains?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ${name}In?: string[];`;
+  }
+
+  if (searchType === "number") {
+    return `  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  ${name}?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  ${name}Min?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  ${name}Max?: number;
+
+  @ApiPropertyOptional({ type: [Number] })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  ${name}In?: number[];`;
+  }
+
+  if (searchType === "date") {
+    return `  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  ${name}?: string;
+
+  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  ${name}From?: string;
+
+  @ApiPropertyOptional({ format: "date-time" })
+  @IsOptional()
+  @IsDateString()
+  ${name}To?: string;`;
+  }
+
+  if (searchType === "boolean") {
+    return `  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  ${name}?: boolean;`;
+  }
+
+  return "";
+}
+
+function buildServiceContent({ modelName, resourceName, includeSearch, searchableFields }) {
   const resourceClassName = toPascalCase(resourceName);
   const prismaProperty = toCamelCase(modelName);
   const dtoBase = kebabCase(modelName);
+  const searchDtoBase = `search-${dtoBase}.dto`;
+  const searchImports = includeSearch
+    ? `\nimport { Prisma } from "database/client/prisma/client";
+import { ${modelName}SearchFiltersDto, Search${modelName}Dto } from "./dto/${searchDtoBase}";`
+    : "";
+  const searchMethods = includeSearch
+    ? `\n${buildSearchServiceMethods({ modelName, prismaProperty, searchableFields })}`
+    : "";
 
   return `import { Injectable } from "@nestjs/common";
 import { createPaginatedResponse, paginate } from "nest-helpers";
@@ -504,6 +701,7 @@ import { PrismaService } from "../database/prisma.service";
 import { Create${modelName}Dto } from "./dto/create-${dtoBase}.dto";
 import { PaginationQueryDto } from "./dto/pagination-query.dto";
 import { Update${modelName}Dto } from "./dto/update-${dtoBase}.dto";
+${searchImports}
 
 @Injectable()
 export class ${resourceClassName}Service {
@@ -537,14 +735,136 @@ export class ${resourceClassName}Service {
   remove(id: string) {
     return this.prisma.${prismaProperty}.delete({ where: { id } });
   }
+${searchMethods}
 }
 `;
 }
 
-function buildControllerContent({ modelName, resourceName }) {
+function buildSearchServiceMethods({ modelName, prismaProperty, searchableFields }) {
+  const whereLines = buildSearchWhereLines(searchableFields);
+
+  return `  async search(query: Search${modelName}Dto) {
+    const pagination = paginate(query);
+    const where = this.buildSearchWhere(query.filters);
+    const orderBy = query.sortField
+      ? ([{ [query.sortField]: query.sortDirection ?? "asc" }] as Prisma.${modelName}OrderByWithRelationInput[])
+      : undefined;
+
+    const [items, count] = await Promise.all([
+      this.prisma.${prismaProperty}.findMany({
+        where,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.${prismaProperty}.count({ where }),
+    ]);
+
+    return createPaginatedResponse(items, count, pagination);
+  }
+
+  private buildSearchWhere(filters?: ${modelName}SearchFiltersDto): Prisma.${modelName}WhereInput {
+    if (!filters) return {};
+
+    const where: Prisma.${modelName}WhereInput = {};
+    const mutableWhere = where as Record<string, unknown>;
+${whereLines}
+    return where;
+  }
+
+  private toFilterObject(value: unknown): Record<string, unknown> {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      return { ...(value as Record<string, unknown>) };
+    }
+    return {};
+  }`;
+}
+
+function buildSearchWhereLines(searchableFields) {
+  return searchableFields
+    .map((field) => {
+      const name = field.name;
+
+      if (field.searchType === "string") {
+        return `    if (filters.${name} !== undefined) {
+      mutableWhere["${name}"] = filters.${name};
+    }
+    if (filters.${name}Contains) {
+      const filter = this.toFilterObject(mutableWhere["${name}"]);
+      mutableWhere["${name}"] = {
+        ...filter,
+        contains: filters.${name}Contains,
+        mode: "insensitive",
+      };
+    }
+    if (filters.${name}In?.length) {
+      const filter = this.toFilterObject(mutableWhere["${name}"]);
+      mutableWhere["${name}"] = {
+        ...filter,
+        in: filters.${name}In,
+      };
+    }`;
+      }
+
+      if (field.searchType === "number") {
+        return `    if (filters.${name} !== undefined) {
+      mutableWhere["${name}"] = filters.${name};
+    }
+    if (
+      filters.${name}Min !== undefined ||
+      filters.${name}Max !== undefined ||
+      filters.${name}In?.length
+    ) {
+      const filter = this.toFilterObject(mutableWhere["${name}"]);
+      if (filters.${name}Min !== undefined) filter.gte = filters.${name}Min;
+      if (filters.${name}Max !== undefined) filter.lte = filters.${name}Max;
+      if (filters.${name}In?.length) filter.in = filters.${name}In;
+      mutableWhere["${name}"] = filter;
+    }`;
+      }
+
+      if (field.searchType === "date") {
+        return `    if (filters.${name}) {
+      mutableWhere["${name}"] = new Date(filters.${name});
+    }
+    if (filters.${name}From || filters.${name}To) {
+      const filter = this.toFilterObject(mutableWhere["${name}"]);
+      if (filters.${name}From) filter.gte = new Date(filters.${name}From);
+      if (filters.${name}To) filter.lte = new Date(filters.${name}To);
+      mutableWhere["${name}"] = filter;
+    }`;
+      }
+
+      if (field.searchType === "boolean") {
+        return `    if (filters.${name} !== undefined) {
+      mutableWhere["${name}"] = filters.${name};
+    }`;
+      }
+
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildControllerContent({ modelName, resourceName, includeSearch }) {
   const resourceClassName = toPascalCase(resourceName);
   const routePath = resourceName.toLowerCase();
   const dtoBase = kebabCase(modelName);
+  const searchDtoImport = includeSearch
+    ? `\nimport { Search${modelName}Dto } from "./dto/search-${dtoBase}.dto";`
+    : "";
+  const searchRoute = includeSearch
+    ? `
+  @Post("search")
+  @ApiOkResponse({
+    schema: ${buildPaginatedResponseSchema(modelName)},
+  })
+  search(@Body() query: Search${modelName}Dto) {
+    return this.${toCamelCase(resourceName)}Service.search(query);
+  }
+`
+    : "";
 
   return `import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
 import { ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiTags, getSchemaPath } from "@nestjs/swagger";
@@ -553,6 +873,7 @@ import { Create${modelName}Dto } from "./dto/create-${dtoBase}.dto";
 import { PaginationQueryDto } from "./dto/pagination-query.dto";
 import { Update${modelName}Dto } from "./dto/update-${dtoBase}.dto";
 import { ${resourceClassName}Service } from "./${resourceName}.service";
+${searchDtoImport}
 
 @ApiTags("${modelName}")
 @ApiExtraModels(${modelName})
@@ -568,7 +889,36 @@ export class ${resourceClassName}Controller {
 
   @Get()
   @ApiOkResponse({
-    schema: {
+    schema: ${buildPaginatedResponseSchema(modelName)},
+  })
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.${toCamelCase(resourceName)}Service.findAll(query);
+  }
+${searchRoute}
+
+  @Get(":id")
+  @ApiOkResponse({ type: ${modelName} })
+  findOne(@Param("id") id: string) {
+    return this.${toCamelCase(resourceName)}Service.findOne(id);
+  }
+
+  @Patch(":id")
+  @ApiOkResponse({ type: ${modelName} })
+  update(@Param("id") id: string, @Body() update${modelName}Dto: Update${modelName}Dto) {
+    return this.${toCamelCase(resourceName)}Service.update(id, update${modelName}Dto);
+  }
+
+  @Delete(":id")
+  @ApiOkResponse({ type: ${modelName} })
+  remove(@Param("id") id: string) {
+    return this.${toCamelCase(resourceName)}Service.remove(id);
+  }
+}
+`;
+}
+
+function buildPaginatedResponseSchema(modelName) {
+  return `{
       type: "object",
       properties: {
         metadata: {
@@ -593,31 +943,7 @@ export class ${resourceClassName}Controller {
         },
       },
       required: ["metadata", "data"],
-    },
-  })
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.${toCamelCase(resourceName)}Service.findAll(query);
-  }
-
-  @Get(":id")
-  @ApiOkResponse({ type: ${modelName} })
-  findOne(@Param("id") id: string) {
-    return this.${toCamelCase(resourceName)}Service.findOne(id);
-  }
-
-  @Patch(":id")
-  @ApiOkResponse({ type: ${modelName} })
-  update(@Param("id") id: string, @Body() update${modelName}Dto: Update${modelName}Dto) {
-    return this.${toCamelCase(resourceName)}Service.update(id, update${modelName}Dto);
-  }
-
-  @Delete(":id")
-  @ApiOkResponse({ type: ${modelName} })
-  remove(@Param("id") id: string) {
-    return this.${toCamelCase(resourceName)}Service.remove(id);
-  }
-}
-`;
+    }`;
 }
 
 function buildModuleContent({ modelName, resourceName }) {

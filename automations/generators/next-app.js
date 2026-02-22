@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 const {
   repoRoot,
   parseCliFlags,
@@ -11,8 +12,9 @@ const {
 
 function main() {
   try {
-    const flags = parseCliFlags({ port: 3000, sample: true, force: false });
+    const flags = parseCliFlags({ port: 3000, sample: true, force: false, install: true });
     const appName = flags.name || flags.app || flags.appName;
+    const shouldInstall = flags.install !== false && flags.skipInstall !== true;
 
     if (!appName) {
       throw new Error('Provide an app name with "--name <appName>".');
@@ -35,10 +37,25 @@ function main() {
       force: Boolean(flags.force),
     });
 
+    if (shouldInstall) {
+      runWorkspaceInstall();
+    }
+
     console.log(`[next-app] Created Next.js app at apps/${appName}`);
   } catch (error) {
     console.error(`[next-app] ${error.message}`);
     process.exit(1);
+  }
+}
+
+function runWorkspaceInstall() {
+  try {
+    execSync("pnpm install", {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+  } catch (error) {
+    throw new Error(`Failed to run "pnpm install" after app creation (${error.message})`);
   }
 }
 

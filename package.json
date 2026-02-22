@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "create:block": "node automations/scripts/create-block.mjs",
     "create:next-app": "node automations/generators/next-app.js",
     "create:nest-app": "node automations/generators/nest-app.js",
     "add:auth": "node automations/generators/front-end/add-ons/add-auth.js",

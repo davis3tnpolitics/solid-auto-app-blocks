@@ -8,10 +8,20 @@ Primary workflow (run from repo root):
 pnpm gen:examples
 ```
 
+Manifest-driven workflow:
+
+```bash
+pnpm create:block -- --list
+pnpm create:block -- --block next-app --name example-web --port 3100
+pnpm create:block -- --block nest-app --name example-api --port 3101
+pnpm create:block -- --block api-updator --app example-api --all
+pnpm create:block -- --block api-updator --app example-api --all --skip-db-generate
+```
+
 With overrides:
 
 ```bash
-pnpm gen:examples -- --web demo-web --api demo-api --model User --web-port 3200 --api-port 3201 --force true
+pnpm gen:examples -- --web demo-web --api demo-api --model User --web-port 3200 --api-port 3201 --force true --skip-db-generate true --skip-install false
 ```
 
 Directories:
@@ -24,7 +34,7 @@ Directories:
 Generate (manual):
 
 ```bash
-pnpm create:next-app -- --name example-web --port 3100
+pnpm create:block -- --block next-app --name example-web --port 3100
 ```
 
 Run:
@@ -38,7 +48,7 @@ pnpm --filter example-web dev -- --port 3100
 Generate (manual):
 
 ```bash
-pnpm create:nest-app -- --name example-api --port 3101
+pnpm create:block -- --block nest-app --name example-api --port 3101
 ```
 
 Run:
@@ -52,8 +62,9 @@ pnpm --filter example-api start:dev
 After generating `example-api`, scaffold a model resource using `api-updator` (manual):
 
 ```bash
-pnpm update:api -- --app example-api --model User
-pnpm update:api -- --app example-api --all
+pnpm create:block -- --block api-updator --app example-api --model User
+pnpm create:block -- --block api-updator --app example-api --all
+pnpm create:block -- --block api-updator --app example-api --all --skip-db-generate
 ```
 
 `--all` reads model names from Prisma schema files in `packages/database/prisma/**/*.prisma`.

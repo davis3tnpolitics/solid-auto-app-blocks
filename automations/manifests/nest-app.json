@@ -20,6 +20,12 @@
       "type": "boolean",
       "default": false,
       "description": "Overwrite an existing directory."
+    },
+    {
+      "flag": "--skip-install",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running `pnpm install` after generating the app."
     }
   ],
   "outputs": ["apps/<name>/**"]

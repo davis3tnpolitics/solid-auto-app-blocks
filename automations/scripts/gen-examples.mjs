@@ -15,6 +15,7 @@ function parseArgs(argv) {
     webPort: 3100,
     apiPort: 3101,
     force: true,
+    skipDbGenerate: false,
   };
 
   const args = { ...defaults };
@@ -56,16 +57,22 @@ function run(command) {
 function main() {
   const flags = parseArgs(process.argv);
   const forceFlag = flags.force ? " --force" : "";
+  const skipDbGenerateFlag = flags.skipDbGenerate ? " --skip-db-generate" : "";
+  const shouldInstall = flags.install !== false && flags.skipInstall !== true;
 
   run(
-    `pnpm create:next-app -- --name ${flags.web} --port ${flags.webPort}${forceFlag}`
+    `pnpm create:block -- --block next-app --name ${flags.web} --port ${flags.webPort}${forceFlag} --skip-install`
   );
   run(
-    `pnpm create:nest-app -- --name ${flags.api} --port ${flags.apiPort}${forceFlag}`
+    `pnpm create:block -- --block nest-app --name ${flags.api} --port ${flags.apiPort}${forceFlag} --skip-install`
   );
   run(
-    `pnpm update:api -- --app ${flags.api} --model ${flags.model}${forceFlag}`
+    `pnpm create:block -- --block api-updator --app ${flags.api} --model ${flags.model}${forceFlag}${skipDbGenerateFlag}`
   );
+
+  if (shouldInstall) {
+    run("pnpm install");
+  }
 }
 
 main();

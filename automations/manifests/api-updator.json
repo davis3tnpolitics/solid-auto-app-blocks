@@ -27,6 +27,18 @@
       "description": "Override the resource path/name (defaults to pluralized kebab-case model name)."
     },
     {
+      "flag": "--search",
+      "type": "boolean",
+      "default": true,
+      "description": "Generate POST /search route, DTO, and Prisma where/orderBy builder."
+    },
+    {
+      "flag": "--skip-db-generate",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running `pnpm --filter database db:generate` before scaffolding."
+    },
+    {
       "flag": "--force",
       "type": "boolean",
       "default": true,

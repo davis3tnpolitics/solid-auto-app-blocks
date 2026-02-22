@@ -11,7 +11,7 @@ pnpm gen:examples
 Generate only frontend (manual):
 
 ```bash
-pnpm create:next-app -- --name example-web --port 3100
+pnpm create:block -- --block next-app --name example-web --port 3100
 ```
 
 Run:

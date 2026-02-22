@@ -83,8 +83,10 @@ All commands below are intended to be run from the repo root.
 ### Root scripts
 
 ```bash
+pnpm create:block -- --list
+pnpm create:block -- --block <manifest-name> [manifest options...]
 pnpm gen:examples
-pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false
+pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false --skip-db-generate true|false --skip-install true|false
 pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
 pnpm create:nest-app -- --name <app> [--port <port>] [--force]
 pnpm add:auth -- --app <next-app-name> [--force]
@@ -98,38 +100,49 @@ pnpm update:api -- --app <nest-app-name> --all
 - creates a Nest app (default `example-api` on port `3101`)
 - scaffolds a CRUD resource for one model (default `User`)
 
+`pnpm create:block` is the manifest-driven entrypoint. It resolves the block from `automations/manifests/*.json` and runs its configured generator.
+
 ### Create a Next.js app
 
 ```bash
-pnpm create:next-app -- --name admin --port 3002
+pnpm create:block -- --block next-app --name admin --port 3002
+pnpm create:block -- --block next-app --name admin --port 3002 --skip-install
 ```
 
 ### Create a NestJS app
 
 ```bash
-pnpm create:nest-app -- --name api --port 3001
+pnpm create:block -- --block nest-app --name api --port 3001
+pnpm create:block -- --block nest-app --name api --port 3001 --skip-install
 ```
 
 ### Add Auth.js scaffolding to an existing Next app
 
 ```bash
-pnpm add:auth -- --app web
+pnpm create:block -- --block add-auth --app web
 ```
 
 ### Generate Nest CRUD resource(s) from Prisma contracts
 
 ```bash
-pnpm update:api -- --app api --model User
-pnpm update:api -- --app api --models User,Account,Session
-pnpm update:api -- --app api --all
+pnpm create:block -- --block api-updator --app api --model User
+pnpm create:block -- --block api-updator --app api --models User,Account,Session
+pnpm create:block -- --block api-updator --app api --all
+pnpm create:block -- --block api-updator --app api --all --search false
+pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 ```
 
 `api-updator` behavior:
 - runs `pnpm --filter database db:generate`
 - scaffolds CRUD endpoints/service/module wiring
 - derives DTO fields from Prisma/contracts
+- generates `POST /search` DTO/service/controller wiring by default (`--search false` to skip)
 - `--all` discovers model names from Prisma schema files (`packages/database/prisma/**/*.prisma`)
+- `--skip-db-generate` is available for quick local smoke tests if Prisma generators are not configured yet
 - respects `/*_ no-auto-update _*/` markers when present
+
+`next-app` and `nest-app` run `pnpm install` automatically after generation.
+Use `--skip-install` when chaining multiple generators and installing once at the end.
 
 ## Examples
 
