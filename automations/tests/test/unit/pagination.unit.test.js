@@ -4,7 +4,7 @@ const paginationModulePath = path.resolve(
   __dirname,
   "../../../../packages/nest-helpers/dist/pagination.js"
 );
-const { paginate } = require(paginationModulePath);
+const { paginate, createPaginatedResponse } = require(paginationModulePath);
 
 describe("pagination defaults and parsing", () => {
   it("uses defaults when no query params are provided", () => {
@@ -59,6 +59,29 @@ describe("pagination defaults and parsing", () => {
       pageSize: 100,
       offset: 0,
       limit: 100,
+    });
+  });
+
+  it("builds metadata+data paginated responses", () => {
+    expect(
+      createPaginatedResponse(
+        [{ id: "u_1" }, { id: "u_2" }],
+        7,
+        {
+          pageNumber: 2,
+          pageSize: 5,
+        }
+      )
+    ).toEqual({
+      metadata: {
+        pageSize: 5,
+        count: 7,
+        pageCount: 2,
+        pageNumber: 2,
+      },
+      data: {
+        items: [{ id: "u_1" }, { id: "u_2" }],
+      },
     });
   });
 });

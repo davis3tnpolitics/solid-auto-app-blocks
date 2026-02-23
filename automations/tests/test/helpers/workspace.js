@@ -4,6 +4,7 @@ const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "../../../..");
 const manifestsSourceDir = path.join(repoRoot, "automations", "manifests");
+const workflowsSourceDir = path.join(repoRoot, "automations", "workflows");
 
 function createTempWorkspace(prefix = "automations-tests-") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -20,6 +21,9 @@ function scaffoldWorkspace(root) {
   fs.mkdirSync(path.join(root, "packages"), { recursive: true });
 
   copyDirectory(manifestsSourceDir, path.join(root, "automations", "manifests"));
+  if (fs.existsSync(workflowsSourceDir)) {
+    copyDirectory(workflowsSourceDir, path.join(root, "automations", "workflows"));
+  }
 
   createPackageStub(root, "config", "config");
   createPackageStub(root, "auth", "auth");

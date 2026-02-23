@@ -86,6 +86,8 @@ All commands below are intended to be run from the repo root.
 ```bash
 pnpm create:block -- --list
 pnpm create:block -- --block <manifest-name> [manifest options...]
+pnpm create:workflow -- --list
+pnpm create:workflow -- --workflow <workflow-name> [workflow variables...]
 pnpm gen:examples
 pnpm test:automations
 pnpm test:ui
@@ -108,6 +110,8 @@ pnpm update:api -- --app <nest-app-name> --all
 
 `pnpm create:block` is the manifest-driven entrypoint. It resolves the block from `automations/manifests/*.json` and runs its configured generator.
 
+`pnpm create:workflow` is the workflow-driven entrypoint. It resolves a sequence from `automations/workflows/*.json`, then runs the required blocks in dependency order with shared variables.
+
 ### Create a Next.js app
 
 ```bash
@@ -120,6 +124,14 @@ pnpm create:block -- --block next-app --name admin --port 3002 --skip-install
 ```bash
 pnpm create:block -- --block nest-app --name api --port 3001
 pnpm create:block -- --block nest-app --name api --port 3001 --skip-install
+```
+
+### Run a workflow
+
+```bash
+pnpm create:workflow -- --workflow examples
+pnpm create:workflow -- --workflow examples --web admin-web --api admin-api --model User
+pnpm create:workflow -- --workflow examples --dry-run
 ```
 
 ### Add Auth.js scaffolding to an existing Next app

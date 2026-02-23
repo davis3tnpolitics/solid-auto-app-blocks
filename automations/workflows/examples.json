@@ -1,0 +1,57 @@
+{
+  "name": "examples",
+  "description": "Generate a paired Next+Nest example stack and scaffold one API resource from Prisma contracts.",
+  "variables": {
+    "web": "example-web",
+    "api": "example-api",
+    "model": "User",
+    "webPort": 3100,
+    "apiPort": 3101,
+    "force": true,
+    "skipDbGenerate": false
+  },
+  "steps": [
+    {
+      "id": "web",
+      "block": "next-app",
+      "args": [
+        "--name",
+        "{{web}}",
+        "--port",
+        "{{webPort}}",
+        "--force",
+        "{{force}}",
+        "--skip-install"
+      ]
+    },
+    {
+      "id": "api",
+      "block": "nest-app",
+      "dependsOn": ["web"],
+      "args": [
+        "--name",
+        "{{api}}",
+        "--port",
+        "{{apiPort}}",
+        "--force",
+        "{{force}}",
+        "--skip-install"
+      ]
+    },
+    {
+      "id": "resource",
+      "block": "api-updator",
+      "dependsOn": ["api"],
+      "args": [
+        "--app",
+        "{{api}}",
+        "--model",
+        "{{model}}",
+        "--force",
+        "{{force}}",
+        "--skip-db-generate",
+        "{{skipDbGenerate}}"
+      ]
+    }
+  ]
+}

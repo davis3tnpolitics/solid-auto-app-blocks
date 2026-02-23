@@ -15,7 +15,8 @@
     "typecheck": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" --if-present typecheck",
     "typecheck:ui": "pnpm --filter @workspace/ui typecheck",
     "test:ui": "pnpm --filter @workspace/ui test:coverage",
-    "test": "pnpm test:automations && pnpm test:ui"
+    "test": "pnpm test:automations && pnpm test:ui",
+    "create:workflow": "node automations/scripts/create-workflow.mjs"
   },
   "keywords": [],
   "author": "",

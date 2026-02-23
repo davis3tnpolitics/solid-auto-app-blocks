@@ -30,6 +30,7 @@ export function parseArgs(argv) {
     block: undefined,
     list: false,
     help: false,
+    dryRun: false,
     passthrough: [],
   };
 
@@ -44,6 +45,10 @@ export function parseArgs(argv) {
     }
     if (token === "--list") {
       args.list = true;
+      continue;
+    }
+    if (token === "--dry-run") {
+      args.dryRun = true;
       continue;
     }
     if (token === "--block" || token === "-b") {
@@ -71,11 +76,13 @@ export function loadManifests() {
     .map((entry) => {
       const manifestPath = path.join(manifestsDir, entry);
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      return {
+      const normalizedManifest = {
         fileName: entry.replace(/\.json$/, ""),
         manifestPath,
         ...manifest,
       };
+      validateManifest(normalizedManifest);
+      return normalizedManifest;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -84,6 +91,7 @@ export function printHelp(manifests) {
   console.log("Usage:");
   console.log("  pnpm create:block -- --block <name> [generator flags]");
   console.log("  pnpm create:block -- --list");
+  console.log("  pnpm create:block -- --block <name> --dry-run [generator flags]");
   console.log("");
   console.log("Examples:");
   console.log("  pnpm create:block -- --block next-app --name admin --port 3002");
@@ -107,6 +115,170 @@ function quoteArg(value) {
   return JSON.stringify(value);
 }
 
+const SUPPORTED_OPTION_TYPES = new Set(["string", "number", "boolean"]);
+
+function assertManifestCondition(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+export function validateManifest(manifest) {
+  const source = manifest.manifestPath || manifest.name || "manifest";
+
+  assertManifestCondition(
+    typeof manifest.name === "string" && manifest.name.length > 0,
+    `${source} is missing a non-empty "name".`
+  );
+  assertManifestCondition(
+    typeof manifest.entry === "string" && manifest.entry.length > 0,
+    `${source} is missing a non-empty "entry".`
+  );
+  assertManifestCondition(
+    Array.isArray(manifest.options),
+    `${source} is missing an "options" array.`
+  );
+  assertManifestCondition(
+    Array.isArray(manifest.outputs),
+    `${source} is missing an "outputs" array.`
+  );
+
+  const nodeEntryMatch = String(manifest.entry).trim().match(/^node\s+([^\s]+)([\s\S]*)$/);
+  assertManifestCondition(
+    Boolean(nodeEntryMatch),
+    `${source} "entry" must start with "node <script-path>".`
+  );
+
+  const entryScriptPath = nodeEntryMatch[1];
+  if (!path.isAbsolute(entryScriptPath)) {
+    const absoluteEntryPath = path.join(scriptRoot, entryScriptPath);
+    assertManifestCondition(
+      fs.existsSync(absoluteEntryPath),
+      `${source} entry script does not exist: ${entryScriptPath}`
+    );
+  }
+
+  manifest.options.forEach((option, index) => {
+    const optionLabel = `${source} option #${index + 1}`;
+    assertManifestCondition(
+      typeof option.flag === "string" && option.flag.startsWith("--"),
+      `${optionLabel} must define a long-form "flag" (e.g. --name).`
+    );
+    assertManifestCondition(
+      SUPPORTED_OPTION_TYPES.has(option.type),
+      `${optionLabel} has unsupported type "${option.type}". Supported types: string, number, boolean.`
+    );
+    if (option.required !== undefined) {
+      assertManifestCondition(
+        typeof option.required === "boolean",
+        `${optionLabel} has invalid "required" value; expected boolean.`
+      );
+    }
+  });
+}
+
+function normalizeFlagName(flag) {
+  return String(flag).replace(/^--/, "");
+}
+
+function parsePassthroughFlags(tokens) {
+  const parsed = new Map();
+  const seenFlags = [];
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+
+    if (!token.startsWith("--")) {
+      throw new Error(
+        `Unexpected positional argument "${token}". Pass values using "--flag value" or "--flag=value".`
+      );
+    }
+
+    const [rawFlag, inlineValue] = token.split("=", 2);
+    const normalizedFlag = normalizeFlagName(rawFlag);
+
+    let value;
+    if (inlineValue !== undefined) {
+      value = inlineValue;
+    } else if (tokens[index + 1] && !tokens[index + 1].startsWith("--")) {
+      value = tokens[index + 1];
+      index += 1;
+    } else {
+      value = true;
+    }
+
+    parsed.set(normalizedFlag, value);
+    seenFlags.push(rawFlag);
+  }
+
+  return { parsed, seenFlags };
+}
+
+function parseBooleanFlagValue(rawValue, flag) {
+  if (typeof rawValue === "boolean") return rawValue;
+  const normalized = String(rawValue).toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  throw new Error(`Invalid boolean value for "${flag}": "${rawValue}". Use true or false.`);
+}
+
+function parseNumberFlagValue(rawValue, flag) {
+  const parsedValue = Number(rawValue);
+  if (Number.isNaN(parsedValue)) {
+    throw new Error(`Invalid number value for "${flag}": "${rawValue}".`);
+  }
+  return parsedValue;
+}
+
+export function validatePassthroughArgs(manifest, passthrough) {
+  const { parsed, seenFlags } = parsePassthroughFlags(passthrough);
+  const allowedOptions = new Map(
+    manifest.options.map((option) => [normalizeFlagName(option.flag), option])
+  );
+
+  seenFlags.forEach((rawFlag) => {
+    const flagName = normalizeFlagName(rawFlag);
+    if (!allowedOptions.has(flagName)) {
+      const allowedFlags = manifest.options.map((option) => option.flag).join(", ");
+      throw new Error(
+        `Unknown flag "${rawFlag}" for block "${manifest.name}". Allowed flags: ${allowedFlags}.`
+      );
+    }
+  });
+
+  allowedOptions.forEach((option, flagName) => {
+    const hasValue = parsed.has(flagName);
+    if (option.required && !hasValue) {
+      throw new Error(`Missing required option "${option.flag}" for block "${manifest.name}".`);
+    }
+    if (!hasValue) return;
+
+    const rawValue = parsed.get(flagName);
+    if (option.type === "string") {
+      if (rawValue === true) {
+        throw new Error(`Option "${option.flag}" requires a value.`);
+      }
+      const asString = String(rawValue);
+      if (!asString.length) {
+        throw new Error(`Option "${option.flag}" requires a non-empty string.`);
+      }
+      return;
+    }
+
+    if (option.type === "number") {
+      if (rawValue === true) {
+        throw new Error(`Option "${option.flag}" requires a numeric value.`);
+      }
+      parseNumberFlagValue(rawValue, option.flag);
+      return;
+    }
+
+    if (option.type === "boolean") {
+      parseBooleanFlagValue(rawValue, option.flag);
+    }
+  });
+}
+
 export function resolveManifestEntryCommand(entry) {
   const trimmed = String(entry).trim();
   const nodeCommandMatch = trimmed.match(/^node\s+([^\s]+)([\s\S]*)$/);
@@ -120,10 +292,15 @@ export function resolveManifestEntryCommand(entry) {
   return `node ${quoteArg(absoluteScriptPath)}${remainder}`;
 }
 
-export function runBlock(manifest, passthrough) {
+export function runBlock(manifest, passthrough, options = {}) {
+  const { dryRun = false } = options;
   const entryCommand = resolveManifestEntryCommand(manifest.entry);
   const quotedArgs = passthrough.map(quoteArg).join(" ");
   const command = `${entryCommand}${quotedArgs ? ` ${quotedArgs}` : ""}`;
+  if (dryRun) {
+    console.log(`[create-block] [dry-run] ${command}`);
+    return;
+  }
   console.log(`[create-block] ${command}`);
   execSync(command, { cwd: repoRoot, stdio: "inherit" });
 }
@@ -156,7 +333,8 @@ export function main() {
     );
   }
 
-  runBlock(manifest, args.passthrough);
+  validatePassthroughArgs(manifest, args.passthrough);
+  runBlock(manifest, args.passthrough, { dryRun: args.dryRun });
 }
 
 const invokedAsScript = process.argv[1]

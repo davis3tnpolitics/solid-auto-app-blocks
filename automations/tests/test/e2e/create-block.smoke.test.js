@@ -3,6 +3,7 @@ const {
   removeTempWorkspace,
   readFile,
   fileExists,
+  writeJson,
 } = require("../helpers/workspace");
 const { runCreateBlock } = require("../helpers/cli");
 
@@ -91,10 +92,20 @@ describe("create:block smoke tests", () => {
 
       const controller = readFile(workspaceRoot, "apps/api-default/src/users/users.controller.ts");
       const service = readFile(workspaceRoot, "apps/api-default/src/users/users.service.ts");
+      const searchDto = readFile(
+        workspaceRoot,
+        "apps/api-default/src/users/dto/search-user.dto.ts"
+      );
 
       expect(controller).toContain('@Post("search")');
       expect(controller).toContain('required: ["metadata", "data"]');
+      expect(controller).toContain('required: ["pageSize", "count", "pageCount", "pageNumber"]');
       expect(service).toContain("createPaginatedResponse");
+      expect(service).toContain("paginate(query)");
+      expect(service).toContain("async search(query: SearchUserDto)");
+      expect(service).toContain("orderBy");
+      expect(searchDto).toContain("export class SearchUserDto extends PaginationQueryDto");
+      expect(searchDto).toContain("export class UserSearchFiltersDto");
     });
   });
 
@@ -165,6 +176,92 @@ describe("create:block smoke tests", () => {
       );
 
       expect(fileExists(workspaceRoot, "apps/passthrough-web/package.json")).toBe(true);
+    });
+  });
+
+  it("supports --dry-run without writing files", () => {
+    withWorkspace((workspaceRoot) => {
+      const result = runCreateBlock(
+        [
+          "--block",
+          "next-app",
+          "--dry-run",
+          "--name",
+          "dry-run-web",
+          "--skip-install",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(result.stdout).toContain("[dry-run]");
+      expect(fileExists(workspaceRoot, "apps/dry-run-web/package.json")).toBe(false);
+    });
+  });
+
+  it("fails on unknown flags for a block manifest", () => {
+    withWorkspace((workspaceRoot) => {
+      const result = runCreateBlock(
+        ["--block", "next-app", "--name", "bad-web", "--not-a-real-flag"],
+        { workspaceRoot, allowFailure: true }
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain('Unknown flag "--not-a-real-flag"');
+    });
+  });
+
+  it("fails when required manifest options are missing", () => {
+    withWorkspace((workspaceRoot) => {
+      const result = runCreateBlock(["--block", "next-app", "--skip-install"], {
+        workspaceRoot,
+        allowFailure: true,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain('Missing required option "--name"');
+    });
+  });
+
+  it("fails with a clear error for malformed manifest options", () => {
+    withWorkspace((workspaceRoot) => {
+      writeJson(workspaceRoot, "automations/manifests/next-app.json", {
+        name: "next-app",
+        description: "broken on purpose",
+        entry: "node automations/generators/next-app.js",
+        outputs: ["apps/<name>/**"],
+      });
+
+      const result = runCreateBlock(["--list"], {
+        workspaceRoot,
+        allowFailure: true,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain('is missing an "options" array');
+    });
+  });
+
+  it("fails on invalid boolean values for boolean options", () => {
+    withWorkspace((workspaceRoot) => {
+      const result = runCreateBlock(
+        ["--block", "next-app", "--name", "invalid-bool-web", "--skip-install", "maybe"],
+        { workspaceRoot, allowFailure: true }
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain('Invalid boolean value for "--skip-install"');
+    });
+  });
+
+  it("fails when non-boolean options are passed without values", () => {
+    withWorkspace((workspaceRoot) => {
+      const result = runCreateBlock(["--block", "next-app", "--name", "missing-port", "--port"], {
+        workspaceRoot,
+        allowFailure: true,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain('Option "--port" requires a numeric value.');
     });
   });
 });

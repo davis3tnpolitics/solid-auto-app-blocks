@@ -46,7 +46,12 @@ function runCreateBlock(flags, options = {}) {
   return runPnpm(["create:block", "--", ...flags], options);
 }
 
+function runCreateWorkflow(flags, options = {}) {
+  return runPnpm(["create:workflow", "--", ...flags], options);
+}
+
 module.exports = {
   runPnpm,
   runCreateBlock,
+  runCreateWorkflow,
 };

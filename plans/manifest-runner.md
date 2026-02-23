@@ -1,5 +1,25 @@
 # Manifest Runner Plan
 
+## Status
+
+Updated on February 23, 2026.
+
+Implemented:
+
+- Slice B complete in `automations/scripts/create-block.mjs`:
+  - required option validation from manifest metadata
+  - unknown flag/type validation with explicit errors
+  - malformed manifest schema checks
+  - `--dry-run` command resolution mode
+- Slice C complete via `automations/scripts/create-workflow.mjs` + `automations/workflows/examples.json`:
+  - workflow manifests for multi-step scaffolds
+  - dependency-ordered execution between block steps
+  - shared variable interpolation (`{{var}}`) across steps
+- Coverage updates:
+  - `automations/tests/test/e2e/create-block.smoke.test.js`
+  - `automations/tests/test/e2e/create-workflow.smoke.test.js`
+  - `automations/tests/test/governance/workflows.test.js`
+
 ## Why this exists
 
 The manifest runner is the semantic entrypoint for code generation in this repo.
