@@ -1,10 +1,18 @@
 const path = require("path");
+const { pathToFileURL } = require("url");
 
-const paginationModulePath = path.resolve(
-  __dirname,
-  "../../../../packages/nest-helpers/dist/pagination.js"
-);
-const { paginate, createPaginatedResponse } = require(paginationModulePath);
+let paginate;
+let createPaginatedResponse;
+
+beforeAll(async () => {
+  const paginationModulePath = path.resolve(
+    __dirname,
+    "../../../../packages/nest-helpers/src/pagination.ts"
+  );
+  const paginationModule = await import(pathToFileURL(paginationModulePath).href);
+  paginate = paginationModule.paginate;
+  createPaginatedResponse = paginationModule.createPaginatedResponse;
+});
 
 describe("pagination defaults and parsing", () => {
   it("uses defaults when no query params are provided", () => {
