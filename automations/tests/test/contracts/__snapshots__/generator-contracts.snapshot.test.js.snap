@@ -444,7 +444,7 @@ async function bootstrap() {
   console.log(\`API listening on http://localhost:\${port}\`);
 }
 
-bootstrap();
+void bootstrap();
 "
 `;
 
@@ -465,6 +465,106 @@ export class AppModule {}
 "
 `;
 
+exports[`generator contract snapshots > snapshots nest-app core files 3`] = `
+"name: App CI (snapshot-api)
+
+on:
+  pull_request:
+    paths:
+      - "apps/snapshot-api/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-api-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/snapshot-api/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-api-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: app-snapshot-api-ci-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app-ci:
+    name: NestJS App CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-api/package.json'); process.exit(pkg.scripts && pkg.scripts.lint ? 0 : 1)"; then
+            pnpm --filter snapshot-api lint
+          else
+            echo "Skipping lint: no script in apps/snapshot-api/package.json"
+          fi
+
+      - name: Run typecheck (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-api/package.json'); process.exit(pkg.scripts && pkg.scripts.typecheck ? 0 : 1)"; then
+            pnpm --filter snapshot-api typecheck
+          else
+            echo "Skipping typecheck: no script in apps/snapshot-api/package.json"
+          fi
+
+      - name: Run tests (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-api/package.json'); process.exit(pkg.scripts && pkg.scripts.test ? 0 : 1)"; then
+            pnpm --filter snapshot-api test
+          else
+            echo "Skipping tests: no script in apps/snapshot-api/package.json"
+          fi
+
+      - name: Run build (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-api/package.json'); process.exit(pkg.scripts && pkg.scripts.build ? 0 : 1)"; then
+            pnpm --filter snapshot-api build
+          else
+            echo "Skipping build: no script in apps/snapshot-api/package.json"
+          fi
+
+  deploy-placeholder:
+    name: Deploy Placeholder
+    runs-on: ubuntu-latest
+    needs: [app-ci]
+    if: \${{ false }}
+
+    steps:
+      - name: Deploy hook placeholder
+        run: echo "Configure deploy hooks for apps/snapshot-api at commit \${{ github.sha }}."
+"
+`;
+
 exports[`generator contract snapshots > snapshots next-app core files 1`] = `
 "{
   "name": "snapshot-web",
@@ -474,7 +574,7 @@ exports[`generator contract snapshots > snapshots next-app core files 1`] = `
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -551,5 +651,105 @@ exports[`generator contract snapshots > snapshots next-app core files 2`] = `
     </main>
   );
 }
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-app core files 3`] = `
+"name: App CI (snapshot-web)
+
+on:
+  pull_request:
+    paths:
+      - "apps/snapshot-web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-web-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/snapshot-web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-web-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: app-snapshot-web-ci-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app-ci:
+    name: Next.js App CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-web/package.json'); process.exit(pkg.scripts && pkg.scripts.lint ? 0 : 1)"; then
+            pnpm --filter snapshot-web lint
+          else
+            echo "Skipping lint: no script in apps/snapshot-web/package.json"
+          fi
+
+      - name: Run typecheck (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-web/package.json'); process.exit(pkg.scripts && pkg.scripts.typecheck ? 0 : 1)"; then
+            pnpm --filter snapshot-web typecheck
+          else
+            echo "Skipping typecheck: no script in apps/snapshot-web/package.json"
+          fi
+
+      - name: Run tests (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-web/package.json'); process.exit(pkg.scripts && pkg.scripts.test ? 0 : 1)"; then
+            pnpm --filter snapshot-web test
+          else
+            echo "Skipping tests: no script in apps/snapshot-web/package.json"
+          fi
+
+      - name: Run build (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-web/package.json'); process.exit(pkg.scripts && pkg.scripts.build ? 0 : 1)"; then
+            pnpm --filter snapshot-web build
+          else
+            echo "Skipping build: no script in apps/snapshot-web/package.json"
+          fi
+
+  deploy-placeholder:
+    name: Deploy Placeholder
+    runs-on: ubuntu-latest
+    needs: [app-ci]
+    if: \${{ false }}
+
+    steps:
+      - name: Deploy hook placeholder
+        run: echo "Configure deploy hooks for apps/snapshot-web at commit \${{ github.sha }}."
 "
 `;

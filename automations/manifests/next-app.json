@@ -32,7 +32,19 @@
       "type": "boolean",
       "default": false,
       "description": "Skip running `pnpm install` after generating the app."
+    },
+    {
+      "flag": "--ci-workflow",
+      "type": "boolean",
+      "default": true,
+      "description": "Generate `.github/workflows/app-<name>-ci.yml` for this app."
+    },
+    {
+      "flag": "--skip-ci-workflow",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip generating a GitHub workflow for this app."
     }
   ],
-  "outputs": ["apps/<name>/**"]
+  "outputs": ["apps/<name>/**", ".github/workflows/app-<name>-ci.yml"]
 }

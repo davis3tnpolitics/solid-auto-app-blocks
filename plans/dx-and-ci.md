@@ -2,7 +2,29 @@
 
 ## Status
 
-Drafted on February 23, 2026.
+Updated on February 23, 2026.
+
+Implemented:
+
+- Slice 1:
+  - root scripts added in `package.json` (`dev`, `build`, `lint`, `verify`)
+  - workspace lint orchestration added in `automations/scripts/lint-workspace.mjs`
+- Slice 2:
+  - repo-infra CI expanded in `.github/workflows/automations-tests.yml` with separate governance/lint/typecheck/automations/UI jobs and concurrency cancellation
+- Slice 3:
+  - governance lint added in `automations/scripts/lint-automation-contracts.mjs`
+  - docs/changelog sync policy checks enforced for manifest/workflow changes
+  - changelog initialized in `CHANGELOG.md`
+- Slice 4:
+  - new `github-workflow-app` generator + manifest
+  - default app workflow generation wired into `next-app` and `nest-app` (`--skip-ci-workflow` opt-out)
+  - workflow generation tests added in `automations/tests`
+
+Open slices:
+
+- Slice 5 (path-aware CI + runtime budget tracking)
+- Slice 6 (extra local troubleshooting/pre-push docs polish)
+- Slice 7 (branch protection rollout and enforcement policy)
 
 ## Goal
 

@@ -58,11 +58,13 @@ describe("generator contract snapshots", () => {
   it("snapshots next-app core files", () => {
     expect(readFile(workspaceRoot, "apps/snapshot-web/package.json")).toMatchSnapshot();
     expect(readFile(workspaceRoot, "apps/snapshot-web/src/app/page.tsx")).toMatchSnapshot();
+    expect(readFile(workspaceRoot, ".github/workflows/app-snapshot-web-ci.yml")).toMatchSnapshot();
   });
 
   it("snapshots nest-app core files", () => {
     expect(readFile(workspaceRoot, "apps/snapshot-api/src/main.ts")).toMatchSnapshot();
     expect(readFile(workspaceRoot, "apps/snapshot-api/src/app.module.ts")).toMatchSnapshot();
+    expect(readFile(workspaceRoot, ".github/workflows/app-snapshot-api-ci.yml")).toMatchSnapshot();
   });
 
   it("snapshots api-updator generated contracts", () => {

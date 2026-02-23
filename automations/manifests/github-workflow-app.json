@@ -1,0 +1,28 @@
+{
+  "name": "github-workflow-app",
+  "description": "Generate a standard app-scoped GitHub Actions CI workflow in .github/workflows for an existing app under apps/.",
+  "entry": "node automations/generators/github-workflow-app.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target app directory/package name under apps/."
+    },
+    {
+      "flag": "--framework",
+      "type": "string",
+      "default": "app",
+      "description": "Workflow labeling hint (e.g. next, nest, app)."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": false,
+      "description": "Overwrite an existing app workflow file."
+    }
+  ],
+  "outputs": [
+    ".github/workflows/app-<app>-ci.yml"
+  ]
+}

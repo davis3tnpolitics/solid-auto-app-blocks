@@ -25,6 +25,7 @@ describe("create:block smoke tests", () => {
       expect(result.stdout).toContain("next-app");
       expect(result.stdout).toContain("nest-app");
       expect(result.stdout).toContain("api-updator");
+      expect(result.stdout).toContain("github-workflow-app");
     });
   });
 
@@ -45,6 +46,7 @@ describe("create:block smoke tests", () => {
 
       expect(fileExists(workspaceRoot, "apps/smoke-web/package.json")).toBe(true);
       expect(fileExists(workspaceRoot, "apps/smoke-web/src/app/api/health/route.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, ".github/workflows/app-smoke-web-ci.yml")).toBe(true);
     });
   });
 
@@ -65,6 +67,56 @@ describe("create:block smoke tests", () => {
 
       expect(fileExists(workspaceRoot, "apps/smoke-api/src/main.ts")).toBe(true);
       expect(fileExists(workspaceRoot, "apps/smoke-api/src/health/health.controller.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, ".github/workflows/app-smoke-api-ci.yml")).toBe(true);
+    });
+  });
+
+  it("supports opt-out of generated app workflow files", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        [
+          "--block",
+          "next-app",
+          "--name",
+          "skip-ci-web",
+          "--skip-install",
+          "--skip-ci-workflow",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/skip-ci-web/package.json")).toBe(true);
+      expect(fileExists(workspaceRoot, ".github/workflows/app-skip-ci-web-ci.yml")).toBe(false);
+    });
+  });
+
+  it("can generate app workflows with dedicated block", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        [
+          "--block",
+          "next-app",
+          "--name",
+          "manual-ci-web",
+          "--skip-install",
+          "--skip-ci-workflow",
+        ],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "github-workflow-app",
+          "--app",
+          "manual-ci-web",
+          "--framework",
+          "next",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, ".github/workflows/app-manual-ci-web-ci.yml")).toBe(true);
     });
   });
 

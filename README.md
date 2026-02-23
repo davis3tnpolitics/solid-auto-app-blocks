@@ -35,6 +35,7 @@ A PNPM monorepo template for generating SOLID, repeatable app blocks (Next.js, N
 ### Prerequisites
 
 - Node.js LTS
+- Node.js `>=20.9.0` (required for Next.js 16 lint/build commands)
 - PNPM (repo uses `pnpm@10.28.0`)
 
 ### Install
@@ -88,7 +89,14 @@ pnpm create:block -- --list
 pnpm create:block -- --block <manifest-name> [manifest options...]
 pnpm create:workflow -- --list
 pnpm create:workflow -- --workflow <workflow-name> [workflow variables...]
+pnpm create:block -- --block github-workflow-app --app <app-name> --framework next|nest|app
 pnpm gen:examples
+pnpm dev
+pnpm build
+pnpm lint
+pnpm lint:workspace
+pnpm lint:automation-contracts
+pnpm verify
 pnpm test:automations
 pnpm test:ui
 pnpm typecheck
@@ -112,11 +120,15 @@ pnpm update:api -- --app <nest-app-name> --all
 
 `pnpm create:workflow` is the workflow-driven entrypoint. It resolves a sequence from `automations/workflows/*.json`, then runs the required blocks in dependency order with shared variables.
 
+`next-app` and `nest-app` now generate app CI workflows by default in `.github/workflows/app-<name>-ci.yml`.
+Use `--skip-ci-workflow` to opt out.
+
 ### Create a Next.js app
 
 ```bash
 pnpm create:block -- --block next-app --name admin --port 3002
 pnpm create:block -- --block next-app --name admin --port 3002 --skip-install
+pnpm create:block -- --block next-app --name admin --skip-ci-workflow
 ```
 
 ### Create a NestJS app
@@ -124,6 +136,7 @@ pnpm create:block -- --block next-app --name admin --port 3002 --skip-install
 ```bash
 pnpm create:block -- --block nest-app --name api --port 3001
 pnpm create:block -- --block nest-app --name api --port 3001 --skip-install
+pnpm create:block -- --block nest-app --name api --skip-ci-workflow
 ```
 
 ### Run a workflow
@@ -132,6 +145,13 @@ pnpm create:block -- --block nest-app --name api --port 3001 --skip-install
 pnpm create:workflow -- --workflow examples
 pnpm create:workflow -- --workflow examples --web admin-web --api admin-api --model User
 pnpm create:workflow -- --workflow examples --dry-run
+```
+
+### Generate app CI workflow for existing app
+
+```bash
+pnpm create:block -- --block github-workflow-app --app web --framework next
+pnpm create:block -- --block github-workflow-app --app api --framework nest
 ```
 
 ### Add Auth.js scaffolding to an existing Next app
@@ -162,6 +182,16 @@ pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 
 `next-app` and `nest-app` run `pnpm install` automatically after generation.
 Use `--skip-install` when chaining multiple generators and installing once at the end.
+
+## CI model
+
+- `.github/workflows/automations-tests.yml` is the repo-infrastructure CI pipeline for:
+  - automation contract governance
+  - workspace lint
+  - workspace typecheck
+  - automations tests
+  - UI tests + coverage artifact
+- generated app workflows (`.github/workflows/app-<name>-ci.yml`) run app-scoped lint/typecheck/test/build checks.
 
 ## Generator testing
 
@@ -217,15 +247,15 @@ pnpm --filter @workspace/ui typecheck
 - Auth helpers are shared from `packages/auth`.
 - Generators are preferred over one-off hand scaffolding.
 
-## Suggested root scripts (next step)
+## Root validation flow
 
-The root `package.json` currently focuses on generation scripts. A typical next step is adding workspace-wide scripts such as:
+Use `pnpm verify` to run the standard local quality gate:
 
-- `dev`: `turbo run dev --parallel`
-- `build`: `turbo run build`
-- `lint`: `turbo run lint`
-- `typecheck`: `turbo run typecheck`
-- `test`: `turbo run test`
+1. `pnpm lint`
+2. `pnpm typecheck`
+3. `pnpm test`
+
+`pnpm lint` runs `lint:workspace` plus `lint:automation-contracts`.
 
 ## License
 
