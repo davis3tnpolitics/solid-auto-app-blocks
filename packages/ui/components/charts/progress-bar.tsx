@@ -43,7 +43,7 @@ function ProgressBarCard({
       ) : (
         <TremorProgressBar
           value={value}
-          color={colors?.[0]}
+          color={colors?.[0] as TremorProgressBarProps["color"]}
           className="w-full"
           {...progressProps}
         />

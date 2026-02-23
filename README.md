@@ -88,6 +88,8 @@ pnpm create:block -- --list
 pnpm create:block -- --block <manifest-name> [manifest options...]
 pnpm gen:examples
 pnpm test:automations
+pnpm test:ui
+pnpm typecheck
 pnpm test:automations:update
 pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false --skip-db-generate true|false --skip-install true|false
 pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
@@ -191,6 +193,7 @@ pnpm --filter database db:studio
 pnpm --filter @workspace/ui build
 pnpm --filter @workspace/ui lint
 pnpm --filter @workspace/ui test
+pnpm --filter @workspace/ui test:coverage
 pnpm --filter @workspace/ui typecheck
 ```
 

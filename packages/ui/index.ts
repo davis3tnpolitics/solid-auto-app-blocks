@@ -1,4 +1,5 @@
 export { cn } from "./lib/utils"
+export * from "./lib/cubejs-adapters"
 
 export * from "./components/ui/alert-dialog"
 export * from "./components/ui/avatar"

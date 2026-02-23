@@ -1,5 +1,19 @@
 # UI CubeJS Adapters + Test Plan
 
+## Status
+
+Completed on February 23, 2026.
+
+Implemented in:
+
+- `packages/ui/lib/cubejs-adapters.ts`
+- `packages/ui/lib/cubejs-adapters.test.ts`
+- `packages/ui/components/charts/charts.test.tsx`
+- `packages/ui/components/forms/fields.test.tsx`
+- `packages/ui/components/ui/interactions.test.tsx`
+- `packages/ui/components/ui/primitives.smoke.test.tsx`
+- `packages/ui/vitest.config.ts`
+
 ## Goal
 
 Create reusable `packages/ui/lib` functions that transform CubeJS API responses into stable chart-ready data for existing chart components in `packages/ui/components/charts`, then add a layered UI test strategy with prioritized coverage.

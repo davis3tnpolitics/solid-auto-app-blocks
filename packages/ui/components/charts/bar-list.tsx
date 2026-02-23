@@ -14,7 +14,7 @@ import { ChartSkeleton } from "./chart-skeleton"
 import type { ChartBaseProps } from "./types"
 
 type BarListCardProps<TData> = ChartBaseProps<TData> &
-  Omit<TremorBarListProps, "data" | "className" | "colorPalette">
+  Omit<TremorBarListProps, "data" | "className" | "color">
 
 function BarListCard<TData>({
   data,
@@ -44,7 +44,7 @@ function BarListCard<TData>({
       ) : (
         <TremorBarList
           data={data as TremorBarListProps["data"]}
-          colorPalette={colors}
+          color={colors?.[0] as TremorBarListProps["color"]}
           className="h-full"
           {...chartProps}
         />

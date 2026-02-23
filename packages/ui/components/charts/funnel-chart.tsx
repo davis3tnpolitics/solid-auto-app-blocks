@@ -13,10 +13,12 @@ import { ChartEmpty } from "./chart-empty"
 import { ChartSkeleton } from "./chart-skeleton"
 import type { ChartBaseProps } from "./types"
 
-type FunnelChartCardProps<TData> = ChartBaseProps<TData> &
+type FunnelDatum = { name: string; value: number }
+
+type FunnelChartCardProps = ChartBaseProps<FunnelDatum> &
   Omit<TremorFunnelChartProps, "data" | "className" | "colors" | "valueFormatter">
 
-function FunnelChartCard<TData>({
+function FunnelChartCard({
   data,
   title,
   description,
@@ -29,7 +31,7 @@ function FunnelChartCard<TData>({
   colors,
   valueFormatter,
   ...chartProps
-}: FunnelChartCardProps<TData>) {
+}: FunnelChartCardProps) {
   const content = (
     <ChartContainer
       height={height}
@@ -46,7 +48,7 @@ function FunnelChartCard<TData>({
         <TremorFunnelChart
           data={data}
           valueFormatter={valueFormatter}
-          colors={colors}
+          color={colors?.[0] as TremorFunnelChartProps["color"]}
           className="h-full"
           {...chartProps}
         />

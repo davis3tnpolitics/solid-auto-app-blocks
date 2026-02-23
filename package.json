@@ -12,7 +12,10 @@
     "gen:examples": "node automations/scripts/gen-examples.mjs",
     "test:automations": "pnpm --filter automations-tests test",
     "test:automations:update": "pnpm --filter automations-tests test:update",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "typecheck": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" --if-present typecheck",
+    "typecheck:ui": "pnpm --filter @workspace/ui typecheck",
+    "test:ui": "pnpm --filter @workspace/ui test:coverage",
+    "test": "pnpm test:automations && pnpm test:ui"
   },
   "keywords": [],
   "author": "",

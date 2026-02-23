@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "components/**/*.test.ts",
+    "components/**/*.test.tsx",
+    "components/**/*.spec.ts",
+    "components/**/*.spec.tsx",
+    "lib/**/*.test.ts",
+    "lib/**/*.test.tsx",
+    "lib/**/*.spec.ts",
+    "lib/**/*.spec.tsx",
+    "test"
+  ]
+}

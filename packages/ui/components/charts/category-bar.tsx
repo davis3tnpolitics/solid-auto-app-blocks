@@ -47,7 +47,7 @@ function CategoryBarCard({
       ) : (
         <TremorCategoryBar
           values={values}
-          colors={colors}
+          colors={colors as TremorCategoryBarProps["colors"]}
           className="w-full"
           {...chartProps}
         />

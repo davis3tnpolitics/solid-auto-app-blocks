@@ -14,6 +14,7 @@ export function createAuthConfig(
 ): NextAuthConfig {
   const base: NextAuthConfig = {
     adapter: PrismaAdapter(prisma),
+    providers: [],
     session: {
       strategy: "database",
     },

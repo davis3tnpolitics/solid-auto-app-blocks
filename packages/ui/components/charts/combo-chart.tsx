@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import {
-  ComboChart as TremorComboChart,
-  type ComboChartProps as TremorComboChartProps,
+  BarChart as TremorComboChart,
+  type BarChartProps as TremorComboChartProps,
 } from "@tremor/react"
 
 import { cn } from "../../lib/utils"
@@ -23,7 +23,10 @@ type ComboChartCardProps<TData> = ChartBaseProps<TData> &
     | "showLegend"
     | "showTooltip"
     | "showGridLines"
-  >
+  > & {
+    // Tremor v3 does not expose ComboChart; keep the public prop for compatibility.
+    type?: "line" | "bar"
+  }
 
 function ComboChartCard<TData>({
   data,
@@ -40,6 +43,7 @@ function ComboChartCard<TData>({
   showLegend,
   showTooltip,
   showGridLines,
+  type: _type,
   ...chartProps
 }: ComboChartCardProps<TData>) {
   const content = (

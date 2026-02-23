@@ -30,3 +30,19 @@ Treat these as contract-breaking and document them clearly:
 - removed generated routes/DTOs/modules
 - changed manifest names/entries/options semantics
 - changed default generator flags that alter output shape
+
+## UI Adapter and Chart Rules
+
+`packages/ui` now has coverage-gated adapter/chart/form tests.
+
+Run locally:
+
+```bash
+pnpm test:ui
+```
+
+Required when changing UI data contracts:
+
+- new adapter in `packages/ui/lib/cubejs-adapters.ts` must include unit tests for happy path and edge cases
+- chart prop/data-shape changes must update chart tests in `packages/ui/components/charts/charts.test.tsx`
+- form behavior changes must update interaction/validation tests in `packages/ui/components/forms/fields.test.tsx`

@@ -40,6 +40,15 @@ function ScatterChartCard<TData>({
   showTooltip,
   ...chartProps
 }: ScatterChartCardProps<TData>) {
+  const scatterValueFormatter: TremorScatterChartProps["valueFormatter"] =
+    valueFormatter
+      ? {
+          x: (value) => valueFormatter(value),
+          y: (value) => valueFormatter(value),
+          size: (value) => valueFormatter(value),
+        }
+      : undefined
+
   const content = (
     <ChartContainer
       height={height}
@@ -55,7 +64,7 @@ function ScatterChartCard<TData>({
       ) : (
         <TremorScatterChart
           data={data}
-          valueFormatter={valueFormatter}
+          valueFormatter={scatterValueFormatter}
           colors={colors}
           showLegend={showLegend}
           showTooltip={showTooltip}

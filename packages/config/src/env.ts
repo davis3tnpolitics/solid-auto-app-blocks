@@ -38,11 +38,11 @@ export function getOptionalEnv(key: string): EnvValue {
 export function ensureEnv<T extends Record<string, string>>(
   schema: readonly (keyof T & string)[]
 ): T {
-  const result = {} as T;
+  const result: Partial<T> = {};
   schema.forEach((key) => {
-    result[key] = getRequiredEnv(key);
+    result[key] = getRequiredEnv(key) as T[typeof key];
   });
-  return result;
+  return result as T;
 }
 
 export const envSchema = Object.freeze({

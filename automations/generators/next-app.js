@@ -131,8 +131,14 @@ function createTsConfig(packages) {
   };
 
   packages.forEach((pkg) => {
-    paths[pkg.name] = [`../../packages/${pkg.dir}`];
-    paths[`${pkg.name}/*`] = [`../../packages/${pkg.dir}/*`];
+    paths[pkg.name] = [
+      `../../packages/${pkg.dir}/src/index.ts`,
+      `../../packages/${pkg.dir}`,
+    ];
+    paths[`${pkg.name}/*`] = [
+      `../../packages/${pkg.dir}/src/*`,
+      `../../packages/${pkg.dir}/*`,
+    ];
   });
 
   const tsconfig = {
@@ -192,9 +198,6 @@ function createNextConfig() {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    dirs: ["src", "."],
-  },
 };
 
 export default nextConfig;

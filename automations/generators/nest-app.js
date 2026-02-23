@@ -88,6 +88,8 @@ function selectServerPackages(packages) {
     "config",
     "auth",
     "@workspace/auth",
+    "nest-helpers",
+    "@workspace/nest-helpers",
     "communications",
     "@workspace/communications",
   ]);
@@ -144,8 +146,14 @@ function createTsConfig(packages) {
   const paths = {};
 
   packages.forEach((pkg) => {
-    paths[pkg.name] = [`../../packages/${pkg.dir}`];
-    paths[`${pkg.name}/*`] = [`../../packages/${pkg.dir}/*`];
+    paths[pkg.name] = [
+      `../../packages/${pkg.dir}/src/index.ts`,
+      `../../packages/${pkg.dir}`,
+    ];
+    paths[`${pkg.name}/*`] = [
+      `../../packages/${pkg.dir}/src/*`,
+      `../../packages/${pkg.dir}/*`,
+    ];
   });
 
   const tsconfig = {
@@ -155,7 +163,6 @@ function createTsConfig(packages) {
       target: "ES2021",
       moduleResolution: "Node",
       outDir: "./dist",
-      rootDir: "./src",
       emitDecoratorMetadata: true,
       experimentalDecorators: true,
       sourceMap: true,
