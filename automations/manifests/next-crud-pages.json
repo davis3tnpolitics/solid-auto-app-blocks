@@ -1,0 +1,73 @@
+{
+  "name": "next-crud-pages",
+  "description": "Generate model-based CRUD hooks and list/detail/create/edit pages for an existing Next app.",
+  "entry": "node automations/generators/next-crud-pages.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target app directory name (apps/<app>)."
+    },
+    {
+      "flag": "--model",
+      "type": "string",
+      "required": false,
+      "description": "Single model name from packages/database/contracts/models."
+    },
+    {
+      "flag": "--models",
+      "type": "string",
+      "required": false,
+      "description": "Comma-separated model names (e.g. User,Account)."
+    },
+    {
+      "flag": "--all",
+      "type": "boolean",
+      "default": false,
+      "description": "Generate CRUD pages for all Prisma models."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": true,
+      "description": "Overwrite generated files unless no-auto-update directive is present."
+    },
+    {
+      "flag": "--ui-preset",
+      "type": "string",
+      "default": "default",
+      "description": "UI density preset (default, compact, spacious)."
+    },
+    {
+      "flag": "--layout",
+      "type": "string",
+      "default": "table",
+      "description": "Visual layout hint (table, cards, split-detail) stored in generated UI config."
+    },
+    {
+      "flag": "--list-mode",
+      "type": "string",
+      "default": "table",
+      "description": "Generated list page behavior mode (table or infinite)."
+    },
+    {
+      "flag": "--form-style",
+      "type": "string",
+      "default": "stacked",
+      "description": "Form layout style (stacked, two-column)."
+    },
+    {
+      "flag": "--theme-token-file",
+      "type": "string",
+      "required": false,
+      "description": "Optional app-relative path for generated CRUD theme token object (for example src/lib/crud/theme-tokens.ts)."
+    }
+  ],
+  "outputs": [
+    "apps/<app>/src/lib/api/**",
+    "apps/<app>/src/lib/crud/**",
+    "apps/<app>/src/lib/<plural-model>/**",
+    "apps/<app>/src/app/<plural-model>/**"
+  ]
+}

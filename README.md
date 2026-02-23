@@ -19,6 +19,7 @@ A PNPM monorepo template for generating SOLID, repeatable app blocks (Next.js, N
 |  |- auth/                 # Shared Auth.js helpers
 |  |- communications/       # Placeholder for comms adapters/contracts
 |  |- config/               # Shared eslint/prettier/tsconfig/env helpers
+|  |- cube-helpers/         # Shared Cube semantic-layer helpers/contracts
 |  |- database/             # Prisma schema/client/contracts/docs
 |  |- dev-ops/              # Placeholder for shared scripts
 |  |- nest-helpers/         # Placeholder for shared Nest helpers
@@ -104,10 +105,15 @@ pnpm test:automations:update
 pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false --skip-db-generate true|false --skip-install true|false
 pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
 pnpm create:nest-app -- --name <app> [--port <port>] [--force]
+pnpm create:cube-app -- --name <app> [--port <port>] [--db-type postgres] [--template docker]
 pnpm add:auth -- --app <next-app-name> [--force]
 pnpm update:api -- --app <nest-app-name> --model <Model>
 pnpm update:api -- --app <nest-app-name> --models User,Account,Session
 pnpm update:api -- --app <nest-app-name> --all
+pnpm update:cube -- --app <app-name> --model <Model>
+pnpm update:cube -- --app <app-name> --models User,Account
+pnpm create:block -- --block next-crud-pages --app <next-app-name> --model <Model>
+pnpm create:block -- --block next-crud-pages --app <next-app-name> --models User,Account --list-mode infinite --layout cards --form-style two-column
 ```
 
 `pnpm gen:examples` runs a full root-level generation flow:
@@ -115,6 +121,8 @@ pnpm update:api -- --app <nest-app-name> --all
 - creates a Next app (default `example-web` on port `3100`)
 - creates a Nest app (default `example-api` on port `3101`)
 - scaffolds a CRUD resource for one model (default `User`)
+- scaffolds Cube analytics artifacts for that model in the API app
+- scaffolds Next CRUD hooks and list/detail/create/edit pages for that model in the web app
 
 `pnpm create:block` is the manifest-driven entrypoint. It resolves the block from `automations/manifests/*.json` and runs its configured generator.
 
@@ -138,6 +146,21 @@ pnpm create:block -- --block nest-app --name api --port 3001
 pnpm create:block -- --block nest-app --name api --port 3001 --skip-install
 pnpm create:block -- --block nest-app --name api --skip-ci-workflow
 ```
+
+### Create a Cube app
+
+```bash
+pnpm create:block -- --block cube-app --name cube --port 4000
+pnpm create:block -- --block cube-app --name cube --db-type postgres --template docker --skip-install
+pnpm create:block -- --block cube-app --name cube --skip-cube-cli
+```
+
+`cube-app` behavior:
+
+- attempts `cubejs-cli create` first (`--cube-cli false` or `--skip-cube-cli` to force fallback templates)
+- falls back to deterministic local templates if CLI bootstrap fails/unavailable
+- wires workspace dependencies (`database`, `cube-helpers`, `config`) when present
+- generates app CI workflow by default (`--skip-ci-workflow` to opt out)
 
 ### Run a workflow
 
@@ -167,6 +190,8 @@ pnpm create:block -- --block api-updator --app api --model User
 pnpm create:block -- --block api-updator --app api --models User,Account,Session
 pnpm create:block -- --block api-updator --app api --all
 pnpm create:block -- --block api-updator --app api --all --search false
+pnpm create:block -- --block api-updator --app api --model User --omit-fields passwordHash,refreshToken
+pnpm create:block -- --block api-updator --app api --model User --omit-sensitive false
 pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 ```
 
@@ -176,9 +201,54 @@ pnpm create:block -- --block api-updator --app api --all --skip-db-generate
 - scaffolds CRUD endpoints/service/module wiring
 - derives DTO fields from Prisma/contracts
 - generates `POST /search` DTO/service/controller wiring by default (`--search false` to skip)
+- applies Prisma `omit` in generated service responses for sensitive fields by default (`--omit-sensitive false` to disable)
+- supports additional response field omission with `--omit-fields <csv>`
 - `--all` discovers model names from Prisma schema files (`packages/database/prisma/**/*.prisma`)
 - `--skip-db-generate` is available for quick local smoke tests if Prisma generators are not configured yet
 - respects `/*_ no-auto-update _*/` markers when present
+
+### Generate Cube analytics services from model contracts
+
+```bash
+pnpm create:block -- --block cube-service-updator --app api --model User
+pnpm create:block -- --block cube-service-updator --app api --models User,Account
+pnpm create:block -- --block cube-service-updator --app api --all
+pnpm create:block -- --block cube-service-updator --app api --model User --tenant-field organizationId
+pnpm create:block -- --block cube-service-updator --app api --model User --skip-db-generate
+```
+
+`cube-service-updator` behavior:
+
+- runs `pnpm --filter database db:generate` (unless `--skip-db-generate` is passed)
+- generates Cube service artifact(s) in `src/analytics/cubes/`
+- generates typed analytics contracts in `src/analytics/contracts/`
+- updates `src/analytics/index.ts` exports idempotently
+- adds `cube-helpers` workspace dependency to the target app when missing
+- supports scoped filter defaults via `--tenant-field`
+- respects `/* no-auto-update */` and `/*_ no-auto-update _*/` markers
+
+### Generate Next CRUD hooks and pages from model contracts
+
+```bash
+pnpm create:block -- --block next-crud-pages --app web --model User
+pnpm create:block -- --block next-crud-pages --app web --models User,Account
+pnpm create:block -- --block next-crud-pages --app web --all
+pnpm create:block -- --block next-crud-pages --app web --model User --list-mode table
+pnpm create:block -- --block next-crud-pages --app web --model User --list-mode infinite --layout cards --form-style two-column
+pnpm create:block -- --block next-crud-pages --app web --model User --ui-preset compact --theme-token-file src/lib/crud/theme-tokens.ts
+```
+
+`next-crud-pages` behavior:
+
+- ensures app dependencies include `@tanstack/react-query`, `axios`, and `zod`
+- scaffolds `src/lib/api` query client wiring + `src/app/providers.tsx`
+- patches `src/app/layout.tsx` to wrap children with `AppProviders` when possible
+- generates model-specific API/hook/query-key/config files in `src/lib/<plural-model>/`
+- generates `src/lib/<plural-model>/overrides.ts` for hidden/readonly/widget/validator customization
+- generates list/detail/create/edit routes in `src/app/<plural-model>/`
+- supports manifest-driven list behavior via `--list-mode table|infinite`
+- includes optimistic create/update/delete cache updates in generated React Query hooks
+- supports manifest-driven UI options: `--ui-preset`, `--layout`, `--form-style`, `--theme-token-file`
 
 `next-app` and `nest-app` run `pnpm install` automatically after generation.
 Use `--skip-install` when chaining multiple generators and installing once at the end.
@@ -237,6 +307,13 @@ pnpm --filter @workspace/ui lint
 pnpm --filter @workspace/ui test
 pnpm --filter @workspace/ui test:coverage
 pnpm --filter @workspace/ui typecheck
+```
+
+### Cube helpers package (`packages/cube-helpers`)
+
+```bash
+pnpm --filter cube-helpers build
+pnpm --filter cube-helpers typecheck
 ```
 
 ## House patterns

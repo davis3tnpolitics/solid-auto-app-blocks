@@ -1,6 +1,6 @@
 {
   "name": "examples",
-  "description": "Generate a paired Next+Nest example stack and scaffold one API resource from Prisma contracts.",
+  "description": "Generate a paired Next+Nest example stack, scaffold API + Cube analytics resources from Prisma contracts, and scaffold web CRUD pages.",
   "variables": {
     "web": "example-web",
     "api": "example-api",
@@ -51,6 +51,34 @@
         "{{force}}",
         "--skip-db-generate",
         "{{skipDbGenerate}}"
+      ]
+    },
+    {
+      "id": "cube-resource",
+      "block": "cube-service-updator",
+      "dependsOn": ["resource"],
+      "args": [
+        "--app",
+        "{{api}}",
+        "--model",
+        "{{model}}",
+        "--force",
+        "{{force}}",
+        "--skip-db-generate",
+        "{{skipDbGenerate}}"
+      ]
+    },
+    {
+      "id": "web-crud",
+      "block": "next-crud-pages",
+      "dependsOn": ["cube-resource"],
+      "args": [
+        "--app",
+        "{{web}}",
+        "--model",
+        "{{model}}",
+        "--force",
+        "{{force}}"
       ]
     }
   ]

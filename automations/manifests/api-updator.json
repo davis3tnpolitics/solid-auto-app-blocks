@@ -33,6 +33,17 @@
       "description": "Generate POST /search route, DTO, and Prisma where/orderBy builder."
     },
     {
+      "flag": "--omit-sensitive",
+      "type": "boolean",
+      "default": true,
+      "description": "Use Prisma omit for commonly sensitive response fields (password/token/secret/hash patterns)."
+    },
+    {
+      "flag": "--omit-fields",
+      "type": "string",
+      "description": "Comma-separated response fields to omit from Prisma results (for example passwordHash,refreshToken)."
+    },
+    {
       "flag": "--skip-db-generate",
       "type": "boolean",
       "default": false,

@@ -24,8 +24,11 @@ describe("create:block smoke tests", () => {
 
       expect(result.stdout).toContain("next-app");
       expect(result.stdout).toContain("nest-app");
+      expect(result.stdout).toContain("cube-app");
       expect(result.stdout).toContain("api-updator");
+      expect(result.stdout).toContain("cube-service-updator");
       expect(result.stdout).toContain("github-workflow-app");
+      expect(result.stdout).toContain("next-crud-pages");
     });
   });
 
@@ -68,6 +71,33 @@ describe("create:block smoke tests", () => {
       expect(fileExists(workspaceRoot, "apps/smoke-api/src/main.ts")).toBe(true);
       expect(fileExists(workspaceRoot, "apps/smoke-api/src/health/health.controller.ts")).toBe(true);
       expect(fileExists(workspaceRoot, ".github/workflows/app-smoke-api-ci.yml")).toBe(true);
+    });
+  });
+
+  it("creates a Cube app (template fallback mode)", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        [
+          "--block",
+          "cube-app",
+          "--name",
+          "smoke-cube",
+          "--port",
+          "4400",
+          "--skip-install",
+          "--skip-cube-cli",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/smoke-cube/package.json")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/smoke-cube/cube.js")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/smoke-cube/model/Health.js")).toBe(true);
+      expect(fileExists(workspaceRoot, ".github/workflows/app-smoke-cube-ci.yml")).toBe(true);
+
+      const packageJson = readFile(workspaceRoot, "apps/smoke-cube/package.json");
+      expect(packageJson).toContain("@cubejs-backend/server");
+      expect(packageJson).toContain("\"cube-helpers\": \"workspace:*\"");
     });
   });
 
@@ -210,6 +240,142 @@ describe("create:block smoke tests", () => {
       );
 
       expect(fileExists(workspaceRoot, "apps/api-all/src/users/users.module.ts")).toBe(true);
+    });
+  });
+
+  it("supports explicit Prisma omit fields in generated service responses", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        ["--block", "nest-app", "--name", "api-omit", "--skip-install"],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "api-updator",
+          "--app",
+          "api-omit",
+          "--model",
+          "User",
+          "--omit-fields",
+          "email",
+          "--skip-db-generate",
+        ],
+        { workspaceRoot }
+      );
+
+      const service = readFile(workspaceRoot, "apps/api-omit/src/users/users.service.ts");
+      expect(service).toContain("private readonly responseOmit");
+      expect(service).toContain("email: true");
+      expect(service).toContain("omit: this.responseOmit");
+    });
+  });
+
+  it("generates Next CRUD hooks and pages for a model", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        [
+          "--block",
+          "next-app",
+          "--name",
+          "crud-web",
+          "--skip-install",
+          "--skip-ci-workflow",
+        ],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "next-crud-pages",
+          "--app",
+          "crud-web",
+          "--model",
+          "User",
+          "--layout",
+          "cards",
+          "--list-mode",
+          "infinite",
+          "--form-style",
+          "two-column",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/lib/api/client.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/lib/users/hooks.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/lib/users/overrides.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/lib/users/config.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/app/users/page.tsx")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/app/users/[id]/page.tsx")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/app/users/create/page.tsx")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/crud-web/src/app/users/[id]/edit/page.tsx")).toBe(true);
+
+      const listPage = readFile(workspaceRoot, "apps/crud-web/src/app/users/page.tsx");
+      const config = readFile(workspaceRoot, "apps/crud-web/src/lib/crud/ui-config.ts");
+      const packageJson = readFile(workspaceRoot, "apps/crud-web/package.json");
+
+      expect(listPage).toContain("CrudList");
+      expect(listPage).toContain("CrudTable");
+      expect(listPage).toContain("useInfiniteUsers");
+      expect(listPage).toContain("fetchNextPage");
+      expect(config).toContain('layout: "cards"');
+      expect(config).toContain('listMode: "infinite"');
+      expect(config).toContain('formStyle: "two-column"');
+      expect(packageJson).toContain("@tanstack/react-query");
+      expect(packageJson).toContain("axios");
+
+      const hooks = readFile(workspaceRoot, "apps/crud-web/src/lib/users/hooks.ts");
+      expect(hooks).toContain("onMutate");
+      expect(hooks).toContain("onError");
+      expect(hooks).toContain("patchListItems");
+      expect(hooks).toContain("queryClient.cancelQueries");
+    });
+  });
+
+  it("generates Cube analytics services from Prisma contracts", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        ["--block", "nest-app", "--name", "cube-api", "--skip-install"],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "cube-service-updator",
+          "--app",
+          "cube-api",
+          "--model",
+          "User",
+          "--skip-db-generate",
+          "--tenant-field",
+          "organizationId",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/cube-api/src/analytics/cubes/user.cube.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/cube-api/src/analytics/contracts/user.analytics.ts")).toBe(
+        true
+      );
+      expect(fileExists(workspaceRoot, "apps/cube-api/src/analytics/index.ts")).toBe(true);
+
+      const cube = readFile(workspaceRoot, "apps/cube-api/src/analytics/cubes/user.cube.ts");
+      const contract = readFile(
+        workspaceRoot,
+        "apps/cube-api/src/analytics/contracts/user.analytics.ts"
+      );
+      const packageJson = readFile(workspaceRoot, "apps/cube-api/package.json");
+
+      expect(cube).toContain('cube: "Users"');
+      expect(cube).toContain("createDefaultMeasures");
+      expect(cube).toContain("requiredFilters: [\"organizationId\"]");
+      expect(contract).toContain("userAnalyticsContract");
+      expect(contract).toContain('scopedFilters: ["organizationId"]');
+      expect(packageJson).toContain("\"cube-helpers\": \"workspace:*\"");
     });
   });
 

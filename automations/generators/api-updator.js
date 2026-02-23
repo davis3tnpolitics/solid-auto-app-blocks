@@ -13,12 +13,16 @@ function main() {
       force: true,
       all: false,
       search: true,
+      omitSensitive: true,
+      omitFields: "",
       skipDbGenerate: false,
     });
     const appName = flags.app || flags.appName;
     const modelsInput = flags.models || flags.model || flags.entity;
     const useAllModels = Boolean(flags.all);
     const includeSearch = flags.search !== false;
+    const includeSensitiveOmit = flags.omitSensitive !== false;
+    const explicitOmitFields = parseCsvList(flags.omitFields);
 
     if (!appName) {
       throw new Error('Provide a Nest app name with "--app <name>".');
@@ -69,6 +73,8 @@ function main() {
         resourceName,
         force: Boolean(flags.force),
         includeSearch,
+        includeSensitiveOmit,
+        explicitOmitFields,
       });
     });
 
@@ -194,7 +200,16 @@ function ensureWorkspaceDependency({ appDir, dependencyName }) {
   );
 }
 
-function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force, includeSearch }) {
+function scaffoldCrudResource({
+  appName,
+  appDir,
+  modelName,
+  resourceName,
+  force,
+  includeSearch,
+  includeSensitiveOmit,
+  explicitOmitFields,
+}) {
   const resourceDir = path.join(appDir, "src", resourceName);
   const modelSlug = kebabCase(modelName);
 
@@ -203,6 +218,14 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force,
   const prismaFields = readPrismaCreateFields(modelName);
   const contractFields = readContractFields(modelName);
   const searchableFields = getSearchableFields(contractFields);
+  const sensitiveFields = includeSensitiveOmit ? getSensitiveFieldNames(contractFields) : [];
+  const omitFields = Array.from(
+    new Set(
+      [...sensitiveFields, ...explicitOmitFields]
+        .map((field) => toCamelCase(String(field).trim()))
+        .filter(Boolean)
+    )
+  );
 
   const createDtoPath = path.join(resourceDir, "dto", `create-${modelSlug}.dto.ts`);
   const updateDtoPath = path.join(resourceDir, "dto", `update-${modelSlug}.dto.ts`);
@@ -238,7 +261,13 @@ function scaffoldCrudResource({ appName, appDir, modelName, resourceName, force,
   writeFileRespectingDirective(entityPath, buildEntityContent(modelName), force);
   writeFileRespectingDirective(
     servicePath,
-    buildServiceContent({ modelName, resourceName, includeSearch, searchableFields }),
+    buildServiceContent({
+      modelName,
+      resourceName,
+      includeSearch,
+      searchableFields,
+      omitFields,
+    }),
     force
   );
   writeFileRespectingDirective(
@@ -687,7 +716,13 @@ function buildSearchFilterProperty(field) {
   return "";
 }
 
-function buildServiceContent({ modelName, resourceName, includeSearch, searchableFields }) {
+function buildServiceContent({
+  modelName,
+  resourceName,
+  includeSearch,
+  searchableFields,
+  omitFields = [],
+}) {
   const resourceClassName = toPascalCase(resourceName);
   const prismaProperty = toCamelCase(modelName);
   const dtoBase = kebabCase(modelName);
@@ -697,8 +732,17 @@ function buildServiceContent({ modelName, resourceName, includeSearch, searchabl
 import { ${modelName}SearchFiltersDto, Search${modelName}Dto } from "./dto/${searchDtoBase}";`
     : "";
   const searchMethods = includeSearch
-    ? `\n${buildSearchServiceMethods({ modelName, prismaProperty, searchableFields })}`
+    ? `\n${buildSearchServiceMethods({
+        modelName,
+        prismaProperty,
+        searchableFields,
+        omitFields,
+      })}`
     : "";
+  const omitBlock = buildOmitBlock(omitFields);
+  const createOmitLine = omitFields.length ? "\n      omit: this.responseOmit," : "";
+  const listOmitLine = omitFields.length ? "\n        omit: this.responseOmit," : "";
+  const detailOmitLine = omitFields.length ? "\n      omit: this.responseOmit," : "";
 
   return `import { Injectable } from "@nestjs/common";
 import { createPaginatedResponse, paginate } from "nest-helpers";
@@ -711,9 +755,11 @@ ${searchImports}
 @Injectable()
 export class ${resourceClassName}Service {
   constructor(private readonly prisma: PrismaService) {}
-
+${omitBlock}
   create(data: Create${modelName}Dto) {
-    return this.prisma.${prismaProperty}.create({ data });
+    return this.prisma.${prismaProperty}.create({
+      data,${createOmitLine}
+    });
   }
 
   async findAll(query: PaginationQueryDto) {
@@ -721,7 +767,7 @@ export class ${resourceClassName}Service {
     const [items, count] = await Promise.all([
       this.prisma.${prismaProperty}.findMany({
         skip: pagination.offset,
-        take: pagination.limit,
+        take: pagination.limit,${listOmitLine}
       }),
       this.prisma.${prismaProperty}.count(),
     ]);
@@ -730,23 +776,36 @@ export class ${resourceClassName}Service {
   }
 
   findOne(id: string) {
-    return this.prisma.${prismaProperty}.findUnique({ where: { id } });
+    return this.prisma.${prismaProperty}.findUnique({
+      where: { id },${detailOmitLine}
+    });
   }
 
   update(id: string, data: Update${modelName}Dto) {
-    return this.prisma.${prismaProperty}.update({ where: { id }, data });
+    return this.prisma.${prismaProperty}.update({
+      where: { id },
+      data,${detailOmitLine}
+    });
   }
 
   remove(id: string) {
-    return this.prisma.${prismaProperty}.delete({ where: { id } });
+    return this.prisma.${prismaProperty}.delete({
+      where: { id },${detailOmitLine}
+    });
   }
 ${searchMethods}
 }
 `;
 }
 
-function buildSearchServiceMethods({ modelName, prismaProperty, searchableFields }) {
+function buildSearchServiceMethods({
+  modelName,
+  prismaProperty,
+  searchableFields,
+  omitFields = [],
+}) {
   const whereLines = buildSearchWhereLines(searchableFields);
+  const omitLine = omitFields.length ? "\n        omit: this.responseOmit," : "";
 
   return `  async search(query: Search${modelName}Dto) {
     const pagination = paginate(query);
@@ -760,7 +819,7 @@ function buildSearchServiceMethods({ modelName, prismaProperty, searchableFields
         where,
         orderBy,
         skip: pagination.offset,
-        take: pagination.limit,
+        take: pagination.limit,${omitLine}
       }),
       this.prisma.${prismaProperty}.count({ where }),
     ]);
@@ -1057,6 +1116,44 @@ function hasNoAutoUpdateDirective(content) {
   return content.trimStart().startsWith("/*_ no-auto-update _*/");
 }
 
+function parseCsvList(value) {
+  if (value === undefined || value === null || value === "") return [];
+  return String(value)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function buildOmitBlock(omitFields) {
+  if (!omitFields.length) return "";
+  const lines = omitFields.map((field) => `    ${field}: true,`).join("\n");
+
+  return `
+  private readonly responseOmit = {
+${lines}
+  } as const;`;
+}
+
+function getSensitiveFieldNames(fields) {
+  const patterns = [
+    /^password$/i,
+    /password/i,
+    /secret/i,
+    /token/i,
+    /api[-_]?key/i,
+    /private[-_]?key/i,
+    /refresh[-_]?token/i,
+    /access[-_]?token/i,
+    /verification[-_]?token/i,
+    /^salt$/i,
+    /hash(ed)?/i,
+  ];
+
+  return fields
+    .map((field) => field.name)
+    .filter((name) => patterns.some((pattern) => pattern.test(String(name))));
+}
+
 function asQuotedList(list) {
   return list.map((item) => `"${item}"`).join(", ");
 }
@@ -1097,6 +1194,8 @@ module.exports = {
   inferSearchType,
   writeFileRespectingDirective,
   hasNoAutoUpdateDirective,
+  parseCsvList,
+  getSensitiveFieldNames,
   pluralizeWord,
   toCamelCase,
   toPascalCase,

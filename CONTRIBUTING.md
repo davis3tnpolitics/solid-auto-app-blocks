@@ -49,6 +49,29 @@ The repo uses two CI layers:
 
 If you add a new app generator, ensure CI workflow generation is part of that generator contract (or clearly document why it is intentionally skipped).
 
+If you change `next-crud-pages` contracts, update and verify:
+
+- generated model hook names/query-key conventions
+- generated route map (`/<plural>`, `/<plural>/[id]`, `/<plural>/create`, `/<plural>/[id]/edit`)
+- generated list behavior mode (`--list-mode table|infinite`) wiring to hooks
+- generated override contract (`src/lib/<plural-model>/overrides.ts`) for hidden/readonly/widget/validator behavior
+- shared CRUD UI primitive usage (`CrudList`, `CrudTable`, `CrudDetail`, `CrudForm`)
+- snapshot coverage in `automations/tests/test/contracts`
+
+If you change `cube-service-updator` contracts, update and verify:
+
+- generated analytics paths (`src/analytics/cubes`, `src/analytics/contracts`, `src/analytics/index.ts`)
+- generated scoped-filter defaults (`--tenant-field`) and security contract output
+- generated `cube-helpers` usage patterns in cube artifacts
+- snapshot coverage in `automations/tests/test/contracts`
+
+If you change `cube-app` contracts, update and verify:
+
+- CLI-first bootstrap behavior (`cubejs-cli`) and deterministic fallback behavior
+- generated app scripts/dependency shape used by app CI workflows
+- generated baseline files (`cube.js`, `model/*`, env/readme scaffolding)
+- snapshot coverage in `automations/tests/test/contracts`
+
 ## UI Adapter and Chart Rules
 
 `packages/ui` now has coverage-gated adapter/chart/form tests.

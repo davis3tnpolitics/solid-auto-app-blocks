@@ -29,6 +29,7 @@ function scaffoldWorkspace(root) {
   createPackageStub(root, "auth", "auth");
   createPackageStub(root, "communications", "communications");
   createPackageStub(root, "database", "database");
+  createPackageStub(root, "cube-helpers", "cube-helpers");
   createPackageStub(root, "nest-helpers", "nest-helpers");
   createPackageStub(root, "ui", "@workspace/ui");
 

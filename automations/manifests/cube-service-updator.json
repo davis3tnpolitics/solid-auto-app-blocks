@@ -1,0 +1,54 @@
+{
+  "name": "cube-service-updator",
+  "description": "Generate CubeJS analytics service artifacts from Prisma contracts (cubes + typed analytics contracts).",
+  "entry": "node automations/generators/cube-service-updator.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target app directory under apps/."
+    },
+    {
+      "flag": "--model",
+      "type": "string",
+      "required": false,
+      "description": "Single Prisma model name (PascalCase)."
+    },
+    {
+      "flag": "--models",
+      "type": "string",
+      "required": false,
+      "description": "Comma-separated Prisma model names (for example User,Account)."
+    },
+    {
+      "flag": "--all",
+      "type": "boolean",
+      "default": false,
+      "description": "Generate analytics artifacts for all models discovered in packages/database/prisma."
+    },
+    {
+      "flag": "--tenant-field",
+      "type": "string",
+      "default": "tenantId",
+      "description": "Scoped filter field recorded in generated analytics contracts/security context."
+    },
+    {
+      "flag": "--skip-db-generate",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running `pnpm --filter database db:generate` before scaffolding."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": true,
+      "description": "Overwrite generated files unless a no-auto-update directive is present."
+    }
+  ],
+  "outputs": [
+    "apps/<app>/src/analytics/cubes/**",
+    "apps/<app>/src/analytics/contracts/**",
+    "apps/<app>/src/analytics/index.ts"
+  ]
+}

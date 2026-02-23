@@ -4,6 +4,13 @@
 
 Updated on February 23, 2026.
 
+### Implementation Progress (Current Repo State)
+
+1. Slice 1 complete (initial `packages/cube-helpers` package scaffold with typed builders/contracts).
+2. Slice 2 complete (manifest-driven `cube-service-updator` generator with model/app/force/all/skip-db-generate support and no-auto-update safety).
+3. Slice 3 partially complete (generated analytics contracts + scoped filter contract via `--tenant-field`; deeper API consumer wiring remains).
+4. Slice 6 baseline complete (unit/e2e/snapshot coverage added for `cube-service-updator` and workflow integration).
+
 ## Goal
 
 Add a manifest-driven CubeJS semantic layer that scaffolds analytics services per model (similar to `api-updator`) and establish a shared `cube-helpers` package for reusable analytics patterns.

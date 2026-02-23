@@ -121,4 +121,24 @@ model User {
       removeTempWorkspace(tempRoot);
     }
   });
+
+  it("detects sensitive field names and parses csv lists", () => {
+    const { getSensitiveFieldNames, parseCsvList } = require(apiUpdatorModulePath);
+
+    expect(
+      getSensitiveFieldNames([
+        { name: "email" },
+        { name: "passwordHash" },
+        { name: "refreshToken" },
+        { name: "apiKey" },
+      ])
+    ).toEqual(["passwordHash", "refreshToken", "apiKey"]);
+
+    expect(parseCsvList("email,passwordHash, refreshToken ")).toEqual([
+      "email",
+      "passwordHash",
+      "refreshToken",
+    ]);
+    expect(parseCsvList("")).toEqual([]);
+  });
 });

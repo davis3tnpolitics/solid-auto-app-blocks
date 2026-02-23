@@ -127,7 +127,9 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateUserDto) {
-    return this.prisma.user.create({ data });
+    return this.prisma.user.create({
+      data,
+    });
   }
 
   async findAll(query: PaginationQueryDto) {
@@ -144,15 +146,22 @@ export class UsersService {
   }
 
   findOne(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
   }
 
   update(id: string, data: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data });
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
   }
 
   remove(id: string) {
-    return this.prisma.user.delete({ where: { id } });
+    return this.prisma.user.delete({
+      where: { id },
+    });
   }
 
   async search(query: SearchUserDto) {
@@ -409,6 +418,199 @@ export class SearchUserDto extends PaginationQueryDto {
 "
 `;
 
+exports[`generator contract snapshots > snapshots cube-app core files 1`] = `
+"{
+  "name": "snapshot-cube",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cubejs-server",
+    "start": "cubejs-server",
+    "build": "echo \\"Cube app is runtime-first; no build output.\\"",
+    "lint": "echo \\"No lint configured for cube app\\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cubejs-backend/server": "^1.6.14",
+    "config": "workspace:*",
+    "cube-helpers": "workspace:*",
+    "database": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^20"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots cube-app core files 2`] = `
+"module.exports = {
+  // Use this file for shared driver/context configuration.
+  // Schema files are generated under ./model by default.
+};
+"
+`;
+
+exports[`generator contract snapshots > snapshots cube-app core files 3`] = `
+"name: App CI (snapshot-cube)
+
+on:
+  pull_request:
+    paths:
+      - "apps/snapshot-cube/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-cube-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/snapshot-cube/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/app-snapshot-cube-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: app-snapshot-cube-ci-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app-ci:
+    name: App App CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-cube/package.json'); process.exit(pkg.scripts && pkg.scripts.lint ? 0 : 1)"; then
+            pnpm --filter snapshot-cube lint
+          else
+            echo "Skipping lint: no script in apps/snapshot-cube/package.json"
+          fi
+
+      - name: Run typecheck (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-cube/package.json'); process.exit(pkg.scripts && pkg.scripts.typecheck ? 0 : 1)"; then
+            pnpm --filter snapshot-cube typecheck
+          else
+            echo "Skipping typecheck: no script in apps/snapshot-cube/package.json"
+          fi
+
+      - name: Run tests (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-cube/package.json'); process.exit(pkg.scripts && pkg.scripts.test ? 0 : 1)"; then
+            pnpm --filter snapshot-cube test
+          else
+            echo "Skipping tests: no script in apps/snapshot-cube/package.json"
+          fi
+
+      - name: Run build (if defined)
+        run: |
+          if node -e "const pkg=require('./apps/snapshot-cube/package.json'); process.exit(pkg.scripts && pkg.scripts.build ? 0 : 1)"; then
+            pnpm --filter snapshot-cube build
+          else
+            echo "Skipping build: no script in apps/snapshot-cube/package.json"
+          fi
+
+  deploy-placeholder:
+    name: Deploy Placeholder
+    runs-on: ubuntu-latest
+    needs: [app-ci]
+    if: \${{ false }}
+
+    steps:
+      - name: Deploy hook placeholder
+        run: echo "Configure deploy hooks for apps/snapshot-cube at commit \${{ github.sha }}."
+"
+`;
+
+exports[`generator contract snapshots > snapshots cube-service-updator generated contracts 1`] = `
+"import {
+  buildCubeService,
+  createDefaultDimensions,
+  createDefaultMeasures,
+  createDefaultPreAggregations,
+  createDefaultTimeDimensions,
+} from "cube-helpers";
+
+const dimensions = createDefaultDimensions([
+  { name: "id", type: "string", primaryKey: true },
+  { name: "email", type: "string", primaryKey: false },
+  { name: "name", type: "string", primaryKey: false },
+  { name: "isActive", type: "boolean", primaryKey: false },
+]);
+
+const measures = createDefaultMeasures({
+  numericFields: ["age"],
+  includeCount: true,
+  includeTotals: true,
+});
+
+const timeDimensions = createDefaultTimeDimensions(["createdAt"]);
+
+export default buildCubeService({
+  cube: "Users",
+  sqlTable: "public.users",
+  dimensions,
+  timeDimensions,
+  measures,
+  preAggregations: createDefaultPreAggregations({
+    timeDimension: "createdAt",
+    measureNames: measures.map((measure) => measure.name),
+  }),
+  securityContext: {
+    requiredFilters: ["tenantId"],
+  },
+});
+"
+`;
+
+exports[`generator contract snapshots > snapshots cube-service-updator generated contracts 2`] = `
+"import type { AnalyticsQueryContract } from "cube-helpers";
+
+export const userAnalyticsContract: AnalyticsQueryContract = {
+  cube: "Users",
+  dimensions: ["id", "email", "name", "isActive"],
+  measures: ["count", "sumAge", "avgAge", "minAge", "maxAge", "totalAge"],
+  totals: ["count", "totalAge"],
+  timeDimensions: ["createdAt"],
+  defaultTimeDimension: "createdAt",
+  scopedFilters: ["tenantId"],
+};
+"
+`;
+
 exports[`generator contract snapshots > snapshots nest-app core files 1`] = `
 "import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
@@ -585,6 +787,7 @@ exports[`generator contract snapshots > snapshots next-app core files 1`] = `
     "auth": "workspace:*",
     "communications": "workspace:*",
     "config": "workspace:*",
+    "cube-helpers": "workspace:*",
     "database": "workspace:*",
     "nest-helpers": "workspace:*",
     "@workspace/ui": "workspace:*"
@@ -613,6 +816,7 @@ exports[`generator contract snapshots > snapshots next-app core files 2`] = `
   "auth",
   "communications",
   "config",
+  "cube-helpers",
   "database",
   "nest-helpers"
 ];
@@ -632,6 +836,7 @@ exports[`generator contract snapshots > snapshots next-app core files 2`] = `
             <li key="auth">auth</li>
             <li key="communications">communications</li>
             <li key="config">config</li>
+            <li key="cube-helpers">cube-helpers</li>
             <li key="database">database</li>
             <li key="nest-helpers">nest-helpers</li>
         </ul>
@@ -751,5 +956,436 @@ jobs:
     steps:
       - name: Deploy hook placeholder
         run: echo "Configure deploy hooks for apps/snapshot-web at commit \${{ github.sha }}."
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-crud-pages generated contracts 1`] = `
+"import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  createUser,
+  deleteUser,
+  getUser,
+  listUsers,
+  updateUser,
+} from "./api";
+import { usersQueryKeys } from "./query-keys";
+import type {
+  CreateUserInput,
+  ListUsersParams,
+  PaginatedResponse,
+  UpdateUserInput,
+  User,
+} from "./types";
+
+function patchListItems(
+  current: PaginatedResponse<User> | undefined,
+  updater: (items: User[]) => User[],
+  countDelta = 0
+): PaginatedResponse<User> | undefined {
+  if (!current) return current;
+
+  const nextItems = updater(current.data.items);
+  return {
+    ...current,
+    metadata: {
+      ...current.metadata,
+      count: Math.max(0, current.metadata.count + countDelta),
+    },
+    data: {
+      ...current.data,
+      items: nextItems,
+    },
+  };
+}
+
+export function useUsers(
+  params: ListUsersParams = {},
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: usersQueryKeys.list(params),
+    queryFn: () => listUsers(params),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useInfiniteUsers(
+  params: Omit<ListUsersParams, "page" | "pageNumber" | "offset"> = {},
+  options?: { enabled?: boolean }
+) {
+  return useInfiniteQuery({
+    queryKey: usersQueryKeys.list(params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      listUsers({
+        ...params,
+        pageNumber: pageParam,
+      }),
+    getNextPageParam: (lastPage) => {
+      const nextPageNumber = lastPage.metadata.pageNumber + 1;
+      return nextPageNumber <= lastPage.metadata.pageCount ? nextPageNumber : undefined;
+    },
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useUser(id?: string) {
+  return useQuery({
+    queryKey: usersQueryKeys.detail(id || ""),
+    queryFn: () => getUser(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateUserInput) => createUser(payload),
+    onMutate: async (payload: CreateUserInput) => {
+      await queryClient.cancelQueries({ queryKey: usersQueryKeys.lists() });
+      const previousLists = queryClient.getQueriesData<PaginatedResponse<User>>({
+        queryKey: usersQueryKeys.lists(),
+      });
+
+      const optimisticItem = {
+        id: "temp-" + Date.now(),
+        ...payload,
+      } as unknown as User;
+
+      queryClient.setQueriesData<PaginatedResponse<User>>(
+        { queryKey: usersQueryKeys.lists() },
+        (current) => patchListItems(current, (items) => [optimisticItem, ...items], 1)
+      );
+
+      return { previousLists };
+    },
+    onError: (_error, _payload, context) => {
+      (context?.previousLists ?? []).forEach(([queryKey, previous]) => {
+        queryClient.setQueryData(queryKey, previous);
+      });
+    },
+    onSuccess: (created) => {
+      if ((created as { id?: string }).id) {
+        queryClient.setQueryData(
+          usersQueryKeys.detail((created as { id: string }).id),
+          created
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateUserInput }) =>
+      updateUser(id, payload),
+    onMutate: async (variables: { id: string; payload: UpdateUserInput }) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: usersQueryKeys.lists() }),
+        queryClient.cancelQueries({ queryKey: usersQueryKeys.detail(variables.id) }),
+      ]);
+
+      const previousLists = queryClient.getQueriesData<PaginatedResponse<User>>({
+        queryKey: usersQueryKeys.lists(),
+      });
+      const previousDetail = queryClient.getQueryData<User>(
+        usersQueryKeys.detail(variables.id)
+      );
+
+      queryClient.setQueryData(
+        usersQueryKeys.detail(variables.id),
+        previousDetail
+          ? ({ ...previousDetail, ...variables.payload } as User)
+          : previousDetail
+      );
+
+      queryClient.setQueriesData<PaginatedResponse<User>>(
+        { queryKey: usersQueryKeys.lists() },
+        (current) =>
+          patchListItems(current, (items) =>
+            items.map((item) =>
+              String((item as { id?: unknown }).id) === variables.id
+                ? ({ ...item, ...variables.payload } as User)
+                : item
+            )
+          )
+      );
+
+      return { previousLists, previousDetail };
+    },
+    onError: (_error, variables, context) => {
+      (context?.previousLists ?? []).forEach(([queryKey, previous]) => {
+        queryClient.setQueryData(queryKey, previous);
+      });
+      if (context?.previousDetail !== undefined) {
+        queryClient.setQueryData(usersQueryKeys.detail(variables.id), context.previousDetail);
+      }
+    },
+    onSuccess: (result, variables) => {
+      queryClient.setQueryData(usersQueryKeys.detail(variables.id), result);
+    },
+    onSettled: (_result, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.detail(variables.id) });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteUser(id),
+    onMutate: async (id: string) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: usersQueryKeys.lists() }),
+        queryClient.cancelQueries({ queryKey: usersQueryKeys.detail(id) }),
+      ]);
+
+      const previousLists = queryClient.getQueriesData<PaginatedResponse<User>>({
+        queryKey: usersQueryKeys.lists(),
+      });
+      const previousDetail = queryClient.getQueryData<User>(usersQueryKeys.detail(id));
+
+      queryClient.setQueriesData<PaginatedResponse<User>>(
+        { queryKey: usersQueryKeys.lists() },
+        (current) =>
+          patchListItems(
+            current,
+            (items) =>
+              items.filter((item) => String((item as { id?: unknown }).id) !== id),
+            -1
+          )
+      );
+      queryClient.removeQueries({ queryKey: usersQueryKeys.detail(id) });
+
+      return { previousLists, previousDetail };
+    },
+    onError: (_error, id, context) => {
+      (context?.previousLists ?? []).forEach(([queryKey, previous]) => {
+        queryClient.setQueryData(queryKey, previous);
+      });
+      if (context?.previousDetail !== undefined) {
+        queryClient.setQueryData(usersQueryKeys.detail(id), context.previousDetail);
+      }
+    },
+    onSettled: (_result, _error, id) => {
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.lists() });
+      queryClient.removeQueries({ queryKey: usersQueryKeys.detail(id) });
+    },
+  });
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-crud-pages generated contracts 2`] = `
+"import { z } from "zod";
+
+import type { CrudDetailField, CrudFormField, CrudTableColumn } from "@workspace/ui";
+import { userCrudOverrides } from "./overrides";
+
+import type { User } from "./types";
+
+const baseCreateUserSchemaShape: Record<string, z.ZodTypeAny> = {
+  "email": z.string().min(1, "Required"),
+  "name": z.string().min(1, "Required").optional(),
+  "age": z.coerce.number().optional(),
+  "isActive": z.boolean().optional(),
+};
+
+const createUserSchemaShape = Object.fromEntries(
+  Object.entries(baseCreateUserSchemaShape).map(([fieldName, schema]) => [
+    fieldName,
+    userCrudOverrides.validators[fieldName] ?? schema,
+  ])
+);
+
+export const createUserSchema = z.object(createUserSchemaShape);
+
+export const updateUserSchema = createUserSchema;
+
+export type UserFormValues = z.infer<typeof createUserSchema>;
+
+const baseUserFormFields: CrudFormField<UserFormValues>[] = [
+  { name: "email", label: "Email", type: "email" },
+  { name: "name", label: "Name", type: "text" },
+  { name: "age", label: "Age", type: "number" },
+  { name: "isActive", label: "Is Active", type: "checkbox" },
+];
+
+export const userFormFields: CrudFormField<UserFormValues>[] = baseUserFormFields
+  .filter((field) => !userCrudOverrides.hiddenFields.includes(String(field.name)))
+  .map((field) => {
+    const fieldName = String(field.name);
+    return {
+      ...field,
+      type: userCrudOverrides.fieldWidgets[fieldName] ?? field.type,
+      disabled: field.disabled || userCrudOverrides.readonlyFields.includes(fieldName),
+    };
+  });
+
+export const userTableColumns: CrudTableColumn<User>[] = [
+  { key: "id", header: "Id" },
+  { key: "email", header: "Email" },
+  { key: "name", header: "Name" },
+  { key: "age", header: "Age" },
+  { key: "isActive", header: "Is Active" },
+];
+
+export const userDetailFields: CrudDetailField<User>[] = [
+  { key: "id", label: "Id" },
+  { key: "email", label: "Email" },
+  { key: "name", label: "Name" },
+  { key: "age", label: "Age" },
+  { key: "isActive", label: "Is Active" },
+  { key: "createdAt", label: "Created At" },
+];
+
+export function toUserFormValues(
+  record?: Partial<User>
+): Partial<UserFormValues> {
+  return {
+    email: record?.email ?? "",
+    name: record?.name ?? "",
+    age: record?.age ?? undefined,
+    isActive: record?.isActive ?? false,
+  };
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-crud-pages generated contracts 3`] = `
+""use client";
+
+import * as React from "react";
+import Link from "next/link";
+
+import { Button, CrudList, CrudTable } from "@workspace/ui";
+
+import { userTableColumns } from "@/lib/users/config";
+import { useUsers, useInfiniteUsers } from "@/lib/users/hooks";
+import { crudUiConfig } from "@/lib/crud/ui-config";
+
+const DEFAULT_PAGE_SIZE = 25;
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Unable to load users.";
+}
+
+export default function UsersPage() {
+  const isInfiniteMode = crudUiConfig.listMode === "infinite";
+  const [pageNumber, setPageNumber] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
+
+  const tableQuery = useUsers(
+    {
+      pageNumber,
+      pageSize,
+    },
+    { enabled: !isInfiniteMode }
+  );
+
+  const infiniteQuery = useInfiniteUsers(
+    {
+      pageSize,
+    },
+    { enabled: isInfiniteMode }
+  );
+
+  const tableRows = tableQuery.data?.data?.items ?? [];
+  const infiniteRows = React.useMemo(
+    () => (infiniteQuery.data?.pages ?? []).flatMap((page) => page.data?.items ?? []),
+    [infiniteQuery.data]
+  );
+  const rows = isInfiniteMode ? infiniteRows : tableRows;
+
+  const activeLoading = isInfiniteMode ? infiniteQuery.isLoading : tableQuery.isLoading;
+  const activeError = isInfiniteMode ? infiniteQuery.error : tableQuery.error;
+  const metadata = tableQuery.data?.metadata ?? {
+    pageNumber,
+    pageSize,
+    pageCount: 1,
+    count: rows.length,
+  };
+
+  return (
+    <main className={crudUiConfig.containerClassName}>
+      <div className={crudUiConfig.contentClassName}>
+        <CrudList
+          title="Users"
+          description="Browse and manage users."
+          isLoading={activeLoading}
+          error={activeError ? getErrorMessage(activeError) : null}
+          isEmpty={rows.length === 0}
+          infiniteScroll={
+            isInfiniteMode
+              ? {
+                  hasMore: Boolean(infiniteQuery.hasNextPage),
+                  isLoadingMore: infiniteQuery.isFetchingNextPage,
+                  onLoadMore: () => infiniteQuery.fetchNextPage(),
+                }
+              : undefined
+          }
+          actions={
+            <Button asChild>
+              <Link href="/users/create">Create User</Link>
+            </Button>
+          }
+        >
+          {isInfiniteMode ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {rows.map((row, index) => (
+                <article
+                  key={String(row.id ?? index)}
+                  className="rounded-lg border bg-card p-4 shadow-sm"
+                >
+                <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Id:</span> {String(row.id ?? "-")}</p>
+                <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Email:</span> {String(row.email ?? "-")}</p>
+                <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Name:</span> {String(row.name ?? "-")}</p>
+                  <div className="mt-3">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={"/users/" + String(row.id ?? "")}>View</Link>
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <CrudTable
+              rows={rows}
+              pagination={metadata}
+              onPageChange={setPageNumber}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPageNumber(1);
+              }}
+              isPageLoading={tableQuery.isFetching}
+              columns={[
+                ...userTableColumns,
+                {
+                  key: "actions",
+                  header: "Actions",
+                  render: (row) => (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={"/users/" + String(row.id ?? "")}>View</Link>
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          )}
+        </CrudList>
+      </div>
+    </main>
+  );
+}
 "
 `;

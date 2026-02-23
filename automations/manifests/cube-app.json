@@ -1,0 +1,77 @@
+{
+  "name": "cube-app",
+  "description": "Generate a Cube app in apps/<name> using Cube CLI when available, with deterministic template fallback.",
+  "entry": "node automations/generators/cube-app.js",
+  "options": [
+    {
+      "flag": "--name",
+      "type": "string",
+      "required": true,
+      "description": "App directory name (apps/<name>)."
+    },
+    {
+      "flag": "--port",
+      "type": "number",
+      "default": 4000,
+      "description": "Default Cube port recorded in generated env and docs."
+    },
+    {
+      "flag": "--db-type",
+      "type": "string",
+      "default": "postgres",
+      "description": "Cube CLI database type used during bootstrap."
+    },
+    {
+      "flag": "--template",
+      "type": "string",
+      "default": "docker",
+      "description": "Cube CLI app template (docker, express, serverless, serverless-google)."
+    },
+    {
+      "flag": "--cube-cli",
+      "type": "boolean",
+      "default": true,
+      "description": "Attempt Cube CLI bootstrap before fallback template scaffolding."
+    },
+    {
+      "flag": "--skip-cube-cli",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip Cube CLI bootstrap and use local fallback templates directly."
+    },
+    {
+      "flag": "--cube-cli-timeout-ms",
+      "type": "number",
+      "default": 45000,
+      "description": "Timeout for Cube CLI bootstrap command before falling back."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": false,
+      "description": "Overwrite an existing directory."
+    },
+    {
+      "flag": "--skip-install",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running `pnpm install` after generating the app."
+    },
+    {
+      "flag": "--ci-workflow",
+      "type": "boolean",
+      "default": true,
+      "description": "Generate `.github/workflows/app-<name>-ci.yml` for this app."
+    },
+    {
+      "flag": "--skip-ci-workflow",
+      "type": "boolean",
+      "default": false,
+      "description": "Skip generating a GitHub workflow for this app."
+    }
+  ],
+  "outputs": [
+    "apps/<name>/**",
+    ".github/workflows/app-<name>-ci.yml"
+  ]
+}
