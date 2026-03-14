@@ -70,6 +70,10 @@ AUTH_GITHUB_SECRET=...
 
 # NestJS
 JWT_SECRET=...
+
+# Cube (used by generated Next analytics proxy route /api/analytics/cube)
+CUBE_API_URL=http://localhost:4000
+CUBE_API_TOKEN=...
 ```
 
 ### Run the web app
@@ -289,11 +293,13 @@ pnpm create:block -- --block next-analytics-pages --app web --analytics-app api 
 
 - reads generated analytics contracts from `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
 - generates shared analytics client/config in `src/lib/analytics/`
+- generates a local Next proxy route at `src/app/api/analytics/cube/route.ts` that forwards Cube load queries to `${CUBE_API_URL}/cubejs-api/v1/load` using `CUBE_API_TOKEN` when present
 - generates model-specific analytics contract + API helpers in `src/lib/analytics/<plural-model>/`
 - generates route pages in `src/app/<route-base>/<plural-model>/page.tsx` with:
   - KPI totals section
   - grouped chart + grouped table section
   - time-series chart section with granularity control
+- model API helpers now issue Cube load queries (summary/grouped/time-series presets) through the generated Next proxy route instead of expecting Nest analytics endpoints
 - generates an analytics index route (`src/app/<route-base>/page.tsx`) linking to generated model pages
 - supports semantic-layer customization flags: `--layout`, `--profile`, `--default-grain`, `--route-base`
 - respects `/* no-auto-update */` and `/*_ no-auto-update _*/` markers

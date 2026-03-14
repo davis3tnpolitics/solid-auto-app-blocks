@@ -38,6 +38,8 @@ AUTH_SECRET=replace-me
 AUTH_GITHUB_ID=replace-me
 AUTH_GITHUB_SECRET=replace-me
 JWT_SECRET=replace-me
+CUBE_API_URL=http://localhost:4000
+CUBE_API_TOKEN=replace-me
 ```
 
 ## 4. Add or update Prisma models
@@ -161,8 +163,8 @@ pnpm verify
 
 ## Notes
 
-- You do **not** need a standalone CubeJS server for the basic generated web+api CRUD flow.
-- You **do** need to run CubeJS when your setup includes a dedicated `apps/cube` service.
+- You do **not** need CubeJS for the basic generated web+api CRUD flow.
+- You **do** need a running Cube endpoint when using generated analytics pages (`next-analytics-pages`), since those pages query Cube through the generated Next proxy route (`/api/analytics/cube`).
 - Re-run generators safely as your schema evolves; they are designed for iterative scaffolding.
 - Use `/* no-auto-update */` (or `/*_ no-auto-update _*/`) in generated files you want generators to leave untouched.
 - For quick local generator runs without Prisma regeneration, some generators support `--skip-db-generate`.

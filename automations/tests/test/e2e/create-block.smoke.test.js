@@ -426,6 +426,9 @@ describe("create:block smoke tests", () => {
       );
 
       expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/client.ts")).toBe(true);
+      expect(
+        fileExists(workspaceRoot, "apps/analytics-web/src/app/api/analytics/cube/route.ts")
+      ).toBe(true);
       expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/ui-config.ts")).toBe(
         true
       );
@@ -441,13 +444,21 @@ describe("create:block smoke tests", () => {
       );
 
       const config = readFile(workspaceRoot, "apps/analytics-web/src/lib/analytics/ui-config.ts");
+      const client = readFile(workspaceRoot, "apps/analytics-web/src/lib/analytics/client.ts");
       const api = readFile(workspaceRoot, "apps/analytics-web/src/lib/analytics/users/api.ts");
+      const route = readFile(
+        workspaceRoot,
+        "apps/analytics-web/src/app/api/analytics/cube/route.ts"
+      );
       const page = readFile(workspaceRoot, "apps/analytics-web/src/app/analytics/users/page.tsx");
 
       expect(config).toContain('layout: "split"');
       expect(config).toContain('profile: "operations"');
+      expect(client).toContain("requestCubeLoad");
       expect(api).toContain("fetchUserAnalyticsGrouped");
-      expect(api).toContain('"/analytics/users/grouped"');
+      expect(api).toContain("requestCubeLoad");
+      expect(api).toContain("toMember(measure)");
+      expect(route).toContain("/cubejs-api/v1/load");
       expect(page).toContain("DataBars");
       expect(page).toContain("BarChartCard");
       expect(page).toContain("LineChartCard");

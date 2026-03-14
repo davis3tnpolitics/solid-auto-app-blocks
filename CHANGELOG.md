@@ -26,3 +26,4 @@ All notable changes to this repository are documented in this file.
 - `gen:examples` and generator docs now align with workflow-first CI behavior for generated apps.
 - `examples` workflow now chains API CRUD + Cube analytics + `next-crud-pages` + `next-analytics-pages` to scaffold end-to-end CRUD and analytics contracts/pages.
 - Pnpm override pins `prisma-generator-fake-data`'s transitive `@faker-js/faker` dependency to a CommonJS-compatible version (`8.4.1`) so `pnpm --filter database db:generate` works reliably in this workspace.
+- `next-analytics-pages` now generates direct Cube query consumers and a Next proxy route (`src/app/api/analytics/cube/route.ts`) instead of expecting Nest summary/grouped/timeseries analytics endpoints.

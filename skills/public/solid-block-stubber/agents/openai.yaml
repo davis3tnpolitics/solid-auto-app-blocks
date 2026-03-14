@@ -1,0 +1,4 @@
+interface:
+  display_name: "Solid Block Stubber"
+  short_description: "Stub ideas into repeatable app blocks fast"
+  default_prompt: "Turn my product idea into concrete block scaffolding steps and run the right generators."

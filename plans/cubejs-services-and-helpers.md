@@ -2,7 +2,7 @@
 
 ## Status
 
-Updated on March 1, 2026.
+Updated on March 14, 2026.
 
 This plan has been converted from proposal mode to execution-tracker mode.
 
@@ -10,7 +10,7 @@ This plan has been converted from proposal mode to execution-tracker mode.
 
 1. Slice 1: Complete
 2. Slice 2: Complete
-3. Slice 3: Partial
+3. Slice 3: Complete (pivoted to direct Cube consumption via generated Next proxy route)
 4. Slice 4: Partial
 5. Slice 5: Complete
 6. Slice 6: Partial
@@ -58,14 +58,14 @@ Ship a stable, manifest-driven Cube semantic layer that can:
 ## Dependency Sequencing With Next CRUD Plan
 
 1. Keep Cube service + contract generation independent (already in place).
-2. Add API consumer scaffolding (analytics routes/modules) before frontend analytics pages.
-3. Generate analytics page blocks after backend analytics contracts and endpoints are standardized.
+2. Generate web analytics consumer scaffolding directly from contracts (no required Nest analytics route layer).
+3. Generate analytics page blocks after Cube contracts and proxy wiring are standardized.
 
 Target sequence:
 
 1. generate Cube services/contracts
-2. generate API-facing analytics contracts/routes
-3. generate analytics pages/components consuming those routes
+2. generate Next analytics client/proxy + model query helpers
+3. generate analytics pages/components consuming Cube through the proxy
 
 ---
 
@@ -111,24 +111,19 @@ Complete.
 
 ### Status
 
-Partial.
+Complete (direct Cube mode).
 
 ### Delivered
 
 1. Generated typed contract files under `src/analytics/contracts`.
 2. Scoped filter contract support through `--tenant-field`.
 3. Stable path conventions for generated cube artifacts.
-
-### Remaining
-
-1. Generate API consumer layer from analytics contracts (routes/controllers/services/modules).
-2. Standardize request/response contract shape for API-to-web analytics calls.
-3. Add extension hooks for domain-specific computed metrics and filter transforms.
+4. Generated Next analytics proxy route (`/api/analytics/cube`) and model query helpers that execute Cube load queries directly from analytics contracts.
 
 ### Exit Criteria Check
 
-1. Stable typed consumer contract: partially met.
-2. Explicit tenancy defaults: met at artifact contract level, not yet end-to-end at API boundary.
+1. Stable typed consumer contract: met (web analytics helper layer now generated from contracts).
+2. Explicit tenancy defaults: met through scoped filter propagation into generated Cube queries.
 
 ---
 
@@ -176,6 +171,7 @@ Complete.
    - `--default-grain` (`day`, `week`, `month`, `quarter`, `year`)
    - `--route-base` for custom analytics route namespaces
 5. Added workflow integration and test coverage (unit + e2e + snapshot).
+6. Pivoted generated analytics data access to direct Cube load calls through `src/app/api/analytics/cube/route.ts` (no required Nest analytics summary/grouped/timeseries endpoints).
 
 ### Exit Criteria
 
@@ -235,18 +231,19 @@ Partial.
 
 ## Next Milestones (What to Build Next)
 
-1. Complete Slice 3 by adding analytics API endpoint/module generation from `src/analytics/contracts`.
+1. Harden direct Cube consumer scaffolding (typed query presets + scoped filter handling + proxy resilience).
 2. Complete Slice 4 by introducing profile flags and customizable aggregation templates.
 3. Complete Slice 6 for helper tests (`packages/cube-helpers` unit suite).
 4. Complete Slice 7 operational gates (performance/security checks).
+5. Add dedicated tests for the generated Next Cube proxy route (`/api/analytics/cube`) and error handling paths.
 
 ---
 
 ## Updated Recommended Execution Order
 
-1. Slice 3 completion (API consumer contract wiring)
-2. Slice 6 completion (helper test coverage)
-3. Slice 4 completion (rich profile generation)
-4. Slice 7 completion (operational governance)
+1. Slice 6 completion (helper test coverage)
+2. Slice 4 completion (rich profile generation)
+3. Slice 7 completion (operational governance)
+4. Direct Cube proxy hardening tests and docs polish
 
-This order closes contract gaps first, then unlocks richer generation and analytics UI scaffolding on top of stable interfaces.
+This order keeps the direct Cube path stable first, then unlocks richer generation and operational governance.

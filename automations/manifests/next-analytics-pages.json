@@ -1,6 +1,6 @@
 {
   "name": "next-analytics-pages",
-  "description": "Generate analytics pages/components for a Next app from Cube analytics contracts generated in another app.",
+  "description": "Generate analytics pages/components for a Next app from Cube analytics contracts generated in another app, including a local Cube proxy route.",
   "entry": "node automations/generators/next-analytics-pages.js",
   "options": [
     {
@@ -66,6 +66,7 @@
   ],
   "outputs": [
     "apps/<app>/src/lib/analytics/**",
-    "apps/<app>/src/app/<route-base>/**"
+    "apps/<app>/src/app/<route-base>/**",
+    "apps/<app>/src/app/api/analytics/cube/route.ts"
   ]
 }

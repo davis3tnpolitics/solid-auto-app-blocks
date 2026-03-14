@@ -62,6 +62,7 @@ If you change `next-analytics-pages` contracts, update and verify:
 
 - analytics contract discovery from `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
 - generated analytics route map (`/<route-base>`, `/<route-base>/<plural-model>`)
+- generated Cube proxy route (`src/app/api/analytics/cube/route.ts`) and Cube load wiring
 - generated analytics sections (KPI totals, grouped chart/table, time-series granularity controls)
 - generated semantic-layout flags (`--layout`, `--profile`, `--default-grain`, `--route-base`)
 - snapshot coverage in `automations/tests/test/contracts`

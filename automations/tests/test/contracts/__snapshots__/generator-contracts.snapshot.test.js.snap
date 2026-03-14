@@ -770,7 +770,12 @@ jobs:
 exports[`generator contract snapshots > snapshots next-analytics-pages generated contracts 1`] = `
 "import type { Granularity } from "@workspace/ui";
 
-import { requestAnalytics } from "@/lib/analytics/client";
+import {
+  requestCubeLoad,
+  type CubeLoadResponse,
+  type CubeQuery,
+  type CubeQueryFilter,
+} from "@/lib/analytics/client";
 
 import { userAnalyticsContract } from "./contract";
 
@@ -795,15 +800,72 @@ type UserAnalyticsOptions = {
   scope?: ScopeFilters;
 };
 
-function toScopeParams(scope?: ScopeFilters) {
-  const scopedFilters = userAnalyticsContract.scopedFilters;
-  if (!scope || !scopedFilters.length) return {};
+function toMember(field: string): string {
+  return userAnalyticsContract.cube + "." + field;
+}
 
-  return Object.fromEntries(
+function toScopeFilters(scope?: ScopeFilters): CubeQueryFilter[] {
+  const scopedFilters = userAnalyticsContract.scopedFilters;
+  if (!scope || !scopedFilters.length) return [];
+
+  return (
     scopedFilters
-      .map((field) => [field, scope[field]])
+      .map((field) => [field, scope[field]] as const)
       .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([field, value]) => ({
+        member: toMember(field),
+        operator: "equals",
+        values: [String(value)],
+      }))
   );
+}
+
+function normalizeCubeMemberKey(key: string): string {
+  const allMembers = [
+    ...userAnalyticsContract.dimensions,
+    ...userAnalyticsContract.measures,
+    ...userAnalyticsContract.timeDimensions,
+  ];
+
+  for (const member of allMembers) {
+    const exact = toMember(member);
+    if (key === exact) return member;
+    if (key.startsWith(exact + ".")) return member;
+  }
+
+  if (key.startsWith(userAnalyticsContract.cube + ".")) {
+    return key.slice(userAnalyticsContract.cube.length + 1).replace(/\\./g, "_");
+  }
+
+  return key;
+}
+
+function normalizeRows(rows: AnalyticsRow[]): AnalyticsRow[] {
+  return rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [normalizeCubeMemberKey(key), value])
+    )
+  );
+}
+
+function toRows(response: CubeLoadResponse): AnalyticsRow[] {
+  const fromRoot = Array.isArray(response.data) ? response.data : null;
+  if (fromRoot) return normalizeRows(fromRoot as AnalyticsRow[]);
+
+  const firstResult = Array.isArray(response.results) ? response.results[0] : null;
+  if (firstResult && Array.isArray(firstResult.data)) {
+    return normalizeRows(firstResult.data as AnalyticsRow[]);
+  }
+
+  return [];
+}
+
+function toMeta(response: CubeLoadResponse): Record<string, unknown> {
+  const firstResult = Array.isArray(response.results) ? response.results[0] : undefined;
+  return {
+    query: response.query ?? firstResult?.query,
+    annotation: response.annotation ?? firstResult?.annotation,
+  };
 }
 
 export async function fetchUserAnalyticsSummary(
@@ -812,11 +874,16 @@ export async function fetchUserAnalyticsSummary(
   const totals = userAnalyticsContract.totals.length
     ? userAnalyticsContract.totals
     : userAnalyticsContract.measures;
+  const query: CubeQuery = {
+    measures: totals.map(toMember),
+    filters: toScopeFilters(options.scope),
+  };
+  const response = await requestCubeLoad(query);
 
-  return requestAnalytics<AnalyticsResponse>("/analytics/users/summary", {
-    measures: totals.join(","),
-    ...toScopeParams(options.scope),
-  });
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 
 export async function fetchUserAnalyticsGrouped(
@@ -831,13 +898,21 @@ export async function fetchUserAnalyticsGrouped(
     ) ??
     userAnalyticsContract.measures[0] ??
     "count";
-
-  return requestAnalytics<AnalyticsResponse>("/analytics/users/grouped", {
-    dimension,
-    measure,
+  const query: CubeQuery = {
+    dimensions: [toMember(dimension)],
+    measures: [toMember(measure)],
+    filters: toScopeFilters(options.scope),
+    order: {
+      [toMember(measure)]: "desc",
+    },
     limit: options.limit ?? 12,
-    ...toScopeParams(options.scope),
-  });
+  };
+  const response = await requestCubeLoad(query);
+
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 
 export async function fetchUserAnalyticsTimeSeries(
@@ -855,15 +930,28 @@ export async function fetchUserAnalyticsTimeSeries(
     userAnalyticsContract.defaultTimeDimension ??
     userAnalyticsContract.timeDimensions[0] ??
     "createdAt";
+  const query: CubeQuery = {
+    measures: [toMember(measure)],
+    timeDimensions: [
+      {
+        dimension: toMember(timeDimension),
+        granularity: options.granularity ?? "day",
+        ...(options.from && options.to
+          ? { dateRange: [options.from, options.to] as [string, string] }
+          : {}),
+      },
+    ],
+    filters: toScopeFilters(options.scope),
+    order: {
+      [toMember(timeDimension)]: "asc",
+    },
+  };
+  const response = await requestCubeLoad(query);
 
-  return requestAnalytics<AnalyticsResponse>("/analytics/users/timeseries", {
-    measure,
-    timeDimension,
-    granularity: options.granularity ?? "day",
-    from: options.from,
-    to: options.to,
-    ...toScopeParams(options.scope),
-  });
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 "
 `;

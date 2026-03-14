@@ -101,6 +101,7 @@ function main() {
 function ensureAnalyticsScaffolding({ appDir, force, routeBase, layout, profile }) {
   const files = {
     "src/lib/analytics/client.ts": createAnalyticsClientFile(),
+    "src/app/api/analytics/cube/route.ts": createCubeProxyRouteFile(),
     "src/lib/analytics/ui-config.ts": createAnalyticsUiConfigFile({
       routeBase,
       layout,
@@ -125,7 +126,7 @@ function scaffoldAnalyticsPageForModel({
 
   const files = {
     [path.join(analyticsLibDir, "contract.ts")]: createModelContractFile(spec),
-    [path.join(analyticsLibDir, "api.ts")]: createModelApiFile(spec, routeBase),
+    [path.join(analyticsLibDir, "api.ts")]: createModelApiFile(spec),
     [path.join(analyticsPageDir, "page.tsx")]: createModelPageFile(
       spec,
       defaultGranularity
@@ -238,47 +239,169 @@ export default function AnalyticsIndexPage() {
 }
 
 function createAnalyticsClientFile() {
-  return `import { appEnv } from "@/lib/env";
+  return `import type { Granularity } from "@workspace/ui";
 
-export type AnalyticsQueryValue = string | number | boolean | null | undefined;
+export type AnalyticsScalar = string | number | boolean | null;
 
-export type AnalyticsQueryParams = Record<string, AnalyticsQueryValue>;
+export type CubeOrder = "asc" | "desc";
+export type CubeFilterOperator =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "notContains"
+  | "startsWith"
+  | "endsWith"
+  | "inDateRange"
+  | "set"
+  | "notSet";
 
-export function createQueryString(params: AnalyticsQueryParams): string {
-  const searchParams = new URLSearchParams();
+export type CubeQueryFilter = {
+  member: string;
+  operator: CubeFilterOperator;
+  values?: string[];
+};
 
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
-    searchParams.set(key, String(value));
-  });
+export type CubeTimeDimension = {
+  dimension: string;
+  granularity?: Granularity;
+  dateRange?: [string, string];
+};
 
-  return searchParams.toString();
-}
+export type CubeQuery = {
+  measures?: string[];
+  dimensions?: string[];
+  timeDimensions?: CubeTimeDimension[];
+  filters?: CubeQueryFilter[];
+  order?: Record<string, CubeOrder>;
+  limit?: number;
+};
 
-export async function requestAnalytics<TResponse>(
-  path: string,
-  params: AnalyticsQueryParams = {}
-): Promise<TResponse> {
-  const normalizedBase = appEnv.apiBaseUrl.replace(/\\/+$/, "");
-  const normalizedPath = path.startsWith("/") ? path : "/" + path;
-  const query = createQueryString(params);
-  const url = normalizedBase + normalizedPath + (query ? "?" + query : "");
+export type CubeLoadResult = {
+  data?: Array<Record<string, AnalyticsScalar>>;
+  annotation?: Record<string, unknown>;
+  query?: Record<string, unknown>;
+};
 
-  const response = await fetch(url, {
-    method: "GET",
+export type CubeLoadResponse = CubeLoadResult & {
+  results?: CubeLoadResult[];
+  error?: string;
+};
+
+export async function requestCubeLoad(query: CubeQuery): Promise<CubeLoadResponse> {
+  const response = await fetch("/api/analytics/cube", {
+    method: "POST",
     headers: {
       Accept: "application/json",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ query }),
     cache: "no-store",
   });
 
   if (!response.ok) {
+    const payload = await response.text();
     throw new Error(
-      "[analytics] Request failed (" + response.status + " " + response.statusText + ") for " + normalizedPath
+      "[analytics] Cube load request failed (" +
+        response.status +
+        " " +
+        response.statusText +
+        "): " +
+        payload
     );
   }
 
-  return (await response.json()) as TResponse;
+  return (await response.json()) as CubeLoadResponse;
+}
+`;
+}
+
+function createCubeProxyRouteFile() {
+  return `import { NextResponse } from "next/server";
+
+type CubeProxyBody = {
+  query?: Record<string, unknown>;
+};
+
+function resolveCubeApiBaseUrl() {
+  return (
+    process.env.CUBE_API_URL ||
+    process.env.NEXT_PUBLIC_CUBE_API_URL ||
+    "http://localhost:4000"
+  );
+}
+
+export async function POST(request: Request) {
+  let body: CubeProxyBody | null = null;
+
+  try {
+    body = (await request.json()) as CubeProxyBody;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body. Expected { query: {...} }." },
+      { status: 400 }
+    );
+  }
+
+  if (!body?.query || typeof body.query !== "object") {
+    return NextResponse.json(
+      { error: 'Missing "query" payload. Expected { query: {...} }.' },
+      { status: 400 }
+    );
+  }
+
+  const cubeApiBaseUrl = resolveCubeApiBaseUrl().replace(/\\/+$/, "");
+  const cubeApiUrl = cubeApiBaseUrl + "/cubejs-api/v1/load";
+  const cubeApiToken = process.env.CUBE_API_TOKEN || "";
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  if (cubeApiToken) {
+    headers.Authorization = "Bearer " + cubeApiToken;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(cubeApiUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: body.query }),
+      cache: "no-store",
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unable to reach Cube API.";
+    return NextResponse.json(
+      {
+        error: "Cube API request failed.",
+        details: message,
+      },
+      { status: 502 }
+    );
+  }
+
+  const payloadText = await response.text();
+  let payload: unknown;
+  try {
+    payload = payloadText ? JSON.parse(payloadText) : {};
+  } catch {
+    payload = { raw: payloadText };
+  }
+
+  if (!response.ok) {
+    return NextResponse.json(
+      {
+        error: "Cube API returned a non-success response.",
+        status: response.status,
+        details: payload,
+      },
+      { status: response.status }
+    );
+  }
+
+  return NextResponse.json(payload);
 }
 `;
 }
@@ -319,13 +442,17 @@ export type ${spec.modelName}AnalyticsTimeDimension =
 `;
 }
 
-function createModelApiFile(spec, routeBase) {
-  const endpointRoot = `/${routeBase}/${spec.routeSegment}`;
+function createModelApiFile(spec) {
   const functionBase = `${spec.modelName}Analytics`;
 
   return `import type { Granularity } from "@workspace/ui";
 
-import { requestAnalytics } from "@/lib/analytics/client";
+import {
+  requestCubeLoad,
+  type CubeLoadResponse,
+  type CubeQuery,
+  type CubeQueryFilter,
+} from "@/lib/analytics/client";
 
 import { ${spec.contractName} } from "./contract";
 
@@ -350,15 +477,72 @@ type ${functionBase}Options = {
   scope?: ScopeFilters;
 };
 
-function toScopeParams(scope?: ScopeFilters) {
-  const scopedFilters = ${spec.contractName}.scopedFilters;
-  if (!scope || !scopedFilters.length) return {};
+function toMember(field: string): string {
+  return ${spec.contractName}.cube + "." + field;
+}
 
-  return Object.fromEntries(
+function toScopeFilters(scope?: ScopeFilters): CubeQueryFilter[] {
+  const scopedFilters = ${spec.contractName}.scopedFilters;
+  if (!scope || !scopedFilters.length) return [];
+
+  return (
     scopedFilters
-      .map((field) => [field, scope[field]])
+      .map((field) => [field, scope[field]] as const)
       .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([field, value]) => ({
+        member: toMember(field),
+        operator: "equals",
+        values: [String(value)],
+      }))
   );
+}
+
+function normalizeCubeMemberKey(key: string): string {
+  const allMembers = [
+    ...${spec.contractName}.dimensions,
+    ...${spec.contractName}.measures,
+    ...${spec.contractName}.timeDimensions,
+  ];
+
+  for (const member of allMembers) {
+    const exact = toMember(member);
+    if (key === exact) return member;
+    if (key.startsWith(exact + ".")) return member;
+  }
+
+  if (key.startsWith(${spec.contractName}.cube + ".")) {
+    return key.slice(${spec.contractName}.cube.length + 1).replace(/\\./g, "_");
+  }
+
+  return key;
+}
+
+function normalizeRows(rows: AnalyticsRow[]): AnalyticsRow[] {
+  return rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [normalizeCubeMemberKey(key), value])
+    )
+  );
+}
+
+function toRows(response: CubeLoadResponse): AnalyticsRow[] {
+  const fromRoot = Array.isArray(response.data) ? response.data : null;
+  if (fromRoot) return normalizeRows(fromRoot as AnalyticsRow[]);
+
+  const firstResult = Array.isArray(response.results) ? response.results[0] : null;
+  if (firstResult && Array.isArray(firstResult.data)) {
+    return normalizeRows(firstResult.data as AnalyticsRow[]);
+  }
+
+  return [];
+}
+
+function toMeta(response: CubeLoadResponse): Record<string, unknown> {
+  const firstResult = Array.isArray(response.results) ? response.results[0] : undefined;
+  return {
+    query: response.query ?? firstResult?.query,
+    annotation: response.annotation ?? firstResult?.annotation,
+  };
 }
 
 export async function fetch${functionBase}Summary(
@@ -367,11 +551,16 @@ export async function fetch${functionBase}Summary(
   const totals = ${spec.contractName}.totals.length
     ? ${spec.contractName}.totals
     : ${spec.contractName}.measures;
+  const query: CubeQuery = {
+    measures: totals.map(toMember),
+    filters: toScopeFilters(options.scope),
+  };
+  const response = await requestCubeLoad(query);
 
-  return requestAnalytics<AnalyticsResponse>("${endpointRoot}/summary", {
-    measures: totals.join(","),
-    ...toScopeParams(options.scope),
-  });
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 
 export async function fetch${functionBase}Grouped(
@@ -386,13 +575,21 @@ export async function fetch${functionBase}Grouped(
     ) ??
     ${spec.contractName}.measures[0] ??
     "count";
-
-  return requestAnalytics<AnalyticsResponse>("${endpointRoot}/grouped", {
-    dimension,
-    measure,
+  const query: CubeQuery = {
+    dimensions: [toMember(dimension)],
+    measures: [toMember(measure)],
+    filters: toScopeFilters(options.scope),
+    order: {
+      [toMember(measure)]: "desc",
+    },
     limit: options.limit ?? 12,
-    ...toScopeParams(options.scope),
-  });
+  };
+  const response = await requestCubeLoad(query);
+
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 
 export async function fetch${functionBase}TimeSeries(
@@ -410,15 +607,28 @@ export async function fetch${functionBase}TimeSeries(
     ${spec.contractName}.defaultTimeDimension ??
     ${spec.contractName}.timeDimensions[0] ??
     "createdAt";
+  const query: CubeQuery = {
+    measures: [toMember(measure)],
+    timeDimensions: [
+      {
+        dimension: toMember(timeDimension),
+        granularity: options.granularity ?? "day",
+        ...(options.from && options.to
+          ? { dateRange: [options.from, options.to] as [string, string] }
+          : {}),
+      },
+    ],
+    filters: toScopeFilters(options.scope),
+    order: {
+      [toMember(timeDimension)]: "asc",
+    },
+  };
+  const response = await requestCubeLoad(query);
 
-  return requestAnalytics<AnalyticsResponse>("${endpointRoot}/timeseries", {
-    measure,
-    timeDimension,
-    granularity: options.granularity ?? "day",
-    from: options.from,
-    to: options.to,
-    ...toScopeParams(options.scope),
-  });
+  return {
+    rows: toRows(response),
+    meta: toMeta(response),
+  };
 }
 `;
 }
