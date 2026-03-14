@@ -14,6 +14,7 @@
     "update:cube": "node automations/generators/cube-service-updator.js",
     "update:analytics-pages": "node automations/generators/next-analytics-pages.js",
     "gen:examples": "node automations/scripts/gen-examples.mjs",
+    "smoke:template": "node automations/scripts/template-smoke.mjs",
     "seed:fake": "pnpm --filter database db:seed:fake",
     "dev": "pnpm -r --parallel --filter \"./apps/*\" --if-present dev",
     "build": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" --if-present build",

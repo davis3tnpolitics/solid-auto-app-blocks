@@ -1,6 +1,6 @@
-# solid-auto-app-blocks
+﻿# solid-auto-app-blocks
 
-A PNPM monorepo template for generating **SOLID**, repeatable app “blocks” (Next.js, NestJS, Cube) with a strong bias toward:
+A PNPM monorepo template for generating **SOLID**, repeatable app â€œblocksâ€ (Next.js, NestJS, Cube) with a strong bias toward:
 
 - **automation-first scaffolding** (so AI agents can build consistently)
 - **testable patterns** (unit/integration/e2e)
@@ -25,7 +25,7 @@ A PNPM monorepo template for generating **SOLID**, repeatable app “blocks” (
 
 Automation of structure is a **key** piece of this repo.
 
-We want a “semantic layer” on top of the codebase where creating a new _block_ (app/module/feature) is a single command/function call that:
+We want a â€œsemantic layerâ€ on top of the codebase where creating a new _block_ (app/module/feature) is a single command/function call that:
 
 - generates code in the right place
 - applies house rules (SOLID boundaries, linting, tests)
@@ -42,27 +42,27 @@ This repo is a **PNPM workspace** so packages can be shared across apps.
 
 Top-level directories:
 
-- `/packages` — shared libraries (database, UI, contracts, tooling)
-- `/apps` — deployable apps (Next, Nest, Cube, etc.)
-- `/automations` — generators + codegen scripts (the “semantic layer”)
+- `/packages` â€” shared libraries (database, UI, contracts, tooling)
+- `/apps` â€” deployable apps (Next, Nest, Cube, etc.)
+- `/automations` â€” generators + codegen scripts (the â€œsemantic layerâ€)
 
 ### Suggested baseline layout
 
 ```txt
 .
-├─ apps/
-│  ├─ web/                 # Next.js frontend (app router)
-│  ├─ api/                 # NestJS backend
-│  └─ cube/                # CubeJS analytics API (optional)
-├─ packages/
-│  ├─ database/            # Prisma + migrations + ERD docs + validators
-│  ├─ ui/                  # Shared component library (shadcn + analytics UI)
-│  ├─ dev-ops/              # scripts, seeds, migration helpers
-│  └─ config/              # eslint/prettier/tsconfig shared configs (recommended)
-└─ automations/
-   ├─ generators/          # plop/hygen/etc. templates (recommended)
-   ├─ scripts/             # codegen (ERD, validators, OpenAPI, etc.)
-   └─ manifests/           # “single function call” definitions (recommended)
+â”œâ”€ apps/
+â”‚  â”œâ”€ web/                 # Next.js frontend (app router)
+â”‚  â”œâ”€ api/                 # NestJS backend
+â”‚  â””â”€ cube/                # CubeJS analytics API (optional)
+â”œâ”€ packages/
+â”‚  â”œâ”€ database/            # Prisma + migrations + ERD docs + validators
+â”‚  â”œâ”€ ui/                  # Shared component library (shadcn + analytics UI)
+â”‚  â”œâ”€ dev-ops/              # scripts, seeds, migration helpers
+â”‚  â””â”€ config/              # eslint/prettier/tsconfig shared configs (recommended)
+â””â”€ automations/
+   â”œâ”€ generators/          # plop/hygen/etc. templates (recommended)
+   â”œâ”€ scripts/             # codegen (ERD, validators, OpenAPI, etc.)
+   â””â”€ manifests/           # â€œsingle function callâ€ definitions (recommended)
 ```
 
 ---
@@ -71,7 +71,7 @@ Top-level directories:
 
 ### `/packages/config`
 
-Shared workspace configuration and “single import” helpers that enforce consistency across apps.
+Shared workspace configuration and â€œsingle importâ€ helpers that enforce consistency across apps.
 
 **What lives here (recommended):**
 
@@ -104,7 +104,7 @@ Shared workspace configuration and “single import” helpers that enforce cons
   - `requireEnv("DATABASE_URL")`
   - `asUrl`, `asInt`, `asBool`
 
-_(Why this exists: fewer “works on my machine” issues, and automation/CI can load the root env the same way every time.)_
+_(Why this exists: fewer â€œworks on my machineâ€ issues, and automation/CI can load the root env the same way every time.)_
 
 ### `/packages/database`
 
@@ -112,9 +112,9 @@ Centered around Prisma.
 
 Recommended subdirectories:
 
-- `/docs` — auto-generated ERD (e.g., via `prisma-markdown`)
-- `/prisma` — schema, models, generators, migrations
-- `/contracts` — generated DTOs / validators (e.g., `prisma-class-validator-generator`)
+- `/docs` â€” auto-generated ERD (e.g., via `prisma-markdown`)
+- `/prisma` â€” schema, models, generators, migrations
+- `/contracts` â€” generated DTOs / validators (e.g., `prisma-class-validator-generator`)
 
 **House rules (recommended):**
 
@@ -128,7 +128,7 @@ General scripts:
 
 - seed data uploaders
 - migration helpers
-- “reset dev env” tasks
+- â€œreset dev envâ€ tasks
 - analytics data loaders
 
 ### `/packages/ui`
@@ -152,16 +152,16 @@ A shared authentication package that lets **Next.js (Auth.js)** and **NestJS** s
 
 - **Auth.js helpers (web side)**
   - Provider presets (GitHub/Google/etc.), shared callbacks, and session shape.
-  - A small helper to generate a server-side “API access token” (if you choose to mint one).
+  - A small helper to generate a server-side â€œAPI access tokenâ€ (if you choose to mint one).
 
 - **NestJS auth helpers (api side)**
   - A reusable `AuthGuard` that validates requests.
   - A `RolesGuard` / `PermissionsGuard` and a `@CurrentUser()` decorator.
-  - Token/session verification utilities so API modules don’t re-implement auth logic.
+  - Token/session verification utilities so API modules donâ€™t re-implement auth logic.
 
 - **Shared contracts**
   - `AuthUser`, `SessionClaims`, `Role`/`Permission` enums/types (and optional validators).
-  - A single “session user” shape used by both apps.
+  - A single â€œsession userâ€ shape used by both apps.
 
 - **Test utilities**
   - Seed helpers to create users/sessions.
@@ -180,42 +180,6 @@ A shared authentication package that lets **Next.js (Auth.js)** and **NestJS** s
 - API never redirects to OAuth providers; it only **accepts and verifies** tokens/sessions.
 - Roles/permissions are enforced in guards and kept out of controllers.
 
-### `/packages/communications`
-
-A shared communications package for **sending messages** (email, SMS) from both the **frontend** and **backend**, while keeping providers (Twilio/SendGrid/etc.) swappable.
-
-**What lives here (recommended):**
-
-- **Message contracts**
-  - Common types like `EmailMessage`, `SmsMessage`, `Recipient`, `TemplateId`, `ProviderResult`.
-  - Domain-specific “intents” (e.g., `InviteUserEmail`, `PasswordResetSms`) that map to templates.
-
-- **Template + rendering layer**
-  - Typed templates (variables enforced by TypeScript).
-  - Rendering helpers (subject/body builders) usable in Node environments.
-  - Optional: shared React email components (if you choose a React-email style approach).
-
-- **Provider adapters (ports & adapters)**
-  - Interfaces like `EmailProvider`, `SmsProvider`.
-  - Implementations like `SendGridEmailProvider`, `TwilioSmsProvider` (or stubs for local dev).
-  - A single `CommsService` that orchestrates sending, retries, and basic validation.
-
-- **Preferences + compliance hooks**
-  - Helpers for opt-out / unsubscribe tokens, “do not contact” checks, and quiet hours.
-  - Standard metadata fields (campaign name, tags) for analytics.
-
-- **Observability + audit utilities**
-  - Consistent logging payload shape, correlation ids, and redaction helpers.
-  - Optional event emitter hooks (e.g., `message.sent`, `message.failed`) for queues/workers.
-
-**House rules (recommended):**
-
-- Don’t call Twilio/SendGrid directly from feature code—features call `CommsService`.
-- Keep secrets/config at the app level (env vars), inject providers via DI.
-- Treat templates as versioned assets (changes should be reviewable and testable).
-
----
-
 ## Code Quality Standards
 
 ### TypeScript
@@ -224,7 +188,7 @@ All apps and packages are TypeScript-first.
 
 - prefer strict mode
 - avoid `any`
-- treat types as part of the “contract” between apps and packages
+- treat types as part of the â€œcontractâ€ between apps and packages
 
 ### Prettier
 
@@ -259,10 +223,10 @@ All apps live under `/apps/*` and should have clear names.
 
 Examples:
 
-- `apps/web` — customer-facing Next.js UI
-- `apps/admin` — internal admin UI
-- `apps/api` — NestJS API
-- `apps/cube` — CubeJS analytics API
+- `apps/web` â€” customer-facing Next.js UI
+- `apps/admin` â€” internal admin UI
+- `apps/api` â€” NestJS API
+- `apps/cube` â€” CubeJS analytics API
 
 ---
 
@@ -272,7 +236,7 @@ Backend development should be focused around **NestJS** or **CubeJS** architectu
 
 ### NestJS house patterns (recommended)
 
-- **Modules represent bounded contexts** (avoid a “giant app.module”).
+- **Modules represent bounded contexts** (avoid a â€œgiant app.moduleâ€).
 - **Controllers are thin**, delegate to services/use-cases.
 - **Validation at the edge** via DTOs + pipes.
 - **Persistence behind repositories** (or at least a data-access layer) so business logic stays testable.
@@ -323,9 +287,9 @@ _(Put the shared contracts + guard utilities in **`/packages/auth`** so web + ap
 
 ---
 
-## /automations (the “semantic layer”)
+## /automations (the â€œsemantic layerâ€)
 
-The purpose of `/automations` is to make “generate X” a repeatable operation.
+The purpose of `/automations` is to make â€œgenerate Xâ€ a repeatable operation.
 
 Recommended contents:
 
@@ -340,11 +304,11 @@ Recommended contents:
 
 ### Examples of automations (recommended)
 
-- `create:nest-module` — module + controller + service + test
-- `create:next-page` — page + layout + API client + route tests
-- `gen:contracts` — Prisma schema → class-validator DTOs
-- `gen:erd` — Prisma schema → ERD docs
-- `gen:openapi` — Nest swagger → OpenAPI JSON
+- `create:nest-module` â€” module + controller + service + test
+- `create:next-page` â€” page + layout + API client + route tests
+- `gen:contracts` â€” Prisma schema â†’ class-validator DTOs
+- `gen:erd` â€” Prisma schema â†’ ERD docs
+- `gen:openapi` â€” Nest swagger â†’ OpenAPI JSON
 
 ---
 
@@ -473,7 +437,7 @@ Add standard scripts in root `package.json`:
 
 - Keep changes small and generator-friendly.
 - Prefer adding a generator/template over hand-rolling one-off patterns.
-- If you add a new “block type”, also add:
+- If you add a new â€œblock typeâ€, also add:
   - a manifest entry
   - at least one test
   - a short docs snippet
@@ -482,4 +446,5 @@ Add standard scripts in root `package.json`:
 
 ## License
 
-Copyright © Trenton Davis 2026
+Copyright Â© Trenton Davis 2026
+

@@ -17,7 +17,6 @@ A PNPM monorepo template for generating SOLID, repeatable app blocks (Next.js, N
 |  `- web/                  # Next.js frontend
 |- packages/
 |  |- auth/                 # Shared Auth.js helpers
-|  |- communications/       # Placeholder for comms adapters/contracts
 |  |- config/               # Shared eslint/prettier/tsconfig/env helpers
 |  |- cube-helpers/         # Shared Cube semantic-layer helpers/contracts
 |  |- database/             # Prisma schema/client/contracts/docs
@@ -52,6 +51,12 @@ Use `db-ops` as the home for database-related scripting, including:
 ```bash
 pnpm install
 ```
+
+### Start from this template
+
+For first-project setup steps, see:
+
+- `docs/new-project-bootstrap.md`
 
 ### Environment
 
@@ -130,6 +135,7 @@ pnpm lint
 pnpm lint:workspace
 pnpm lint:automation-contracts
 pnpm verify
+pnpm smoke:template
 pnpm test:automations
 pnpm test:ui
 pnpm test:cube-helpers
@@ -349,6 +355,7 @@ Use `--skip-install` when chaining multiple generators and installing once at th
   - automations tests
   - UI tests + coverage artifact
   - cube-helpers unit tests
+  - template generation smoke test
 - generated app workflows (`.github/workflows/app-<name>-ci.yml`) run app-scoped lint/typecheck/test/build checks.
 
 ## Generator testing

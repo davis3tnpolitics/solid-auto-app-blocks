@@ -154,6 +154,33 @@ jobs:
           path: packages/ui/coverage
           if-no-files-found: warn
 
+  template-smoke:
+    runs-on: ubuntu-latest
+    needs: [governance]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run template generation smoke test
+        run: pnpm smoke:template
+
   test-cube-helpers:
     runs-on: ubuntu-latest
     needs: [governance]

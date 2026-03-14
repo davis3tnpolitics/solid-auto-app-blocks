@@ -1331,7 +1331,6 @@ exports[`generator contract snapshots > snapshots next-app core files 1`] = `
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "auth": "workspace:*",
-    "communications": "workspace:*",
     "config": "workspace:*",
     "cube-helpers": "workspace:*",
     "database": "workspace:*",
@@ -1360,7 +1359,6 @@ exports[`generator contract snapshots > snapshots next-app core files 2`] = `
   const workspacePackages = [
   "@workspace/ui",
   "auth",
-  "communications",
   "config",
   "cube-helpers",
   "database",
@@ -1380,7 +1378,6 @@ exports[`generator contract snapshots > snapshots next-app core files 2`] = `
         <ul>
             <li key="@workspace/ui">@workspace/ui</li>
             <li key="auth">auth</li>
-            <li key="communications">communications</li>
             <li key="config">config</li>
             <li key="cube-helpers">cube-helpers</li>
             <li key="database">database</li>

@@ -22,6 +22,7 @@ All notable changes to this repository are documented in this file.
 - `next-analytics-pages` manifest + generator for model-driven Next analytics pages (KPI totals, grouped chart/table, time-series controls) generated from Cube analytics contracts.
 - `next-compose-page` manifest + generator for customizable, spec-driven Next page composition (JSON preset/spec) with contract-aware list/chart/table sections.
 - Root fake-data seeding script: `pnpm seed:fake` (backed by `packages/database/scripts/db-seed-fake.ts`) for schema-driven local test data insertion.
+- Template smoke script: `pnpm smoke:template` (`automations/scripts/template-smoke.mjs`) to validate end-to-end generation in a disposable workspace.
 
 ### Changed
 
@@ -30,3 +31,5 @@ All notable changes to this repository are documented in this file.
 - Pnpm override pins `prisma-generator-fake-data`'s transitive `@faker-js/faker` dependency to a CommonJS-compatible version (`8.4.1`) so `pnpm --filter database db:generate` works reliably in this workspace.
 - `next-analytics-pages` now generates direct Cube query consumers and a Next proxy route (`src/app/api/analytics/cube/route.ts`) instead of expecting Nest summary/grouped/timeseries analytics endpoints.
 - Repo infrastructure CI now runs cube-helpers unit tests as a first-class gate.
+- Repo infrastructure CI now runs a `template-smoke` job that executes full workflow generation plus composed dashboard page generation.
+- Removed the `packages/communications` placeholder package from the template workspace.
