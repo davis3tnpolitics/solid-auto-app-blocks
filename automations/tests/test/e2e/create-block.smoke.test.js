@@ -29,6 +29,7 @@ describe("create:block smoke tests", () => {
       expect(result.stdout).toContain("cube-service-updator");
       expect(result.stdout).toContain("github-workflow-app");
       expect(result.stdout).toContain("next-crud-pages");
+      expect(result.stdout).toContain("next-analytics-pages");
     });
   });
 
@@ -376,6 +377,84 @@ describe("create:block smoke tests", () => {
       expect(contract).toContain("userAnalyticsContract");
       expect(contract).toContain('scopedFilters: ["organizationId"]');
       expect(packageJson).toContain("\"cube-helpers\": \"workspace:*\"");
+    });
+  });
+
+  it("generates Next analytics pages from Cube analytics contracts", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        ["--block", "next-app", "--name", "analytics-web", "--skip-install", "--skip-ci-workflow"],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        ["--block", "nest-app", "--name", "analytics-api", "--skip-install", "--skip-ci-workflow"],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "cube-service-updator",
+          "--app",
+          "analytics-api",
+          "--model",
+          "User",
+          "--skip-db-generate",
+        ],
+        { workspaceRoot }
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "next-analytics-pages",
+          "--app",
+          "analytics-web",
+          "--analytics-app",
+          "analytics-api",
+          "--model",
+          "User",
+          "--layout",
+          "split",
+          "--profile",
+          "operations",
+          "--default-grain",
+          "month",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/client.ts")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/ui-config.ts")).toBe(
+        true
+      );
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/users/contract.ts")).toBe(
+        true
+      );
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/lib/analytics/users/api.ts")).toBe(
+        true
+      );
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/app/analytics/page.tsx")).toBe(true);
+      expect(fileExists(workspaceRoot, "apps/analytics-web/src/app/analytics/users/page.tsx")).toBe(
+        true
+      );
+
+      const config = readFile(workspaceRoot, "apps/analytics-web/src/lib/analytics/ui-config.ts");
+      const api = readFile(workspaceRoot, "apps/analytics-web/src/lib/analytics/users/api.ts");
+      const page = readFile(workspaceRoot, "apps/analytics-web/src/app/analytics/users/page.tsx");
+
+      expect(config).toContain('layout: "split"');
+      expect(config).toContain('profile: "operations"');
+      expect(api).toContain("fetchUserAnalyticsGrouped");
+      expect(api).toContain('"/analytics/users/grouped"');
+      expect(page).toContain("DataBars");
+      expect(page).toContain("BarChartCard");
+      expect(page).toContain("LineChartCard");
+      expect(page).toContain("Grouped table");
+      expect(page).toContain(
+        "const [granularity, setGranularity] = React.useState<SupportedGranularity>("
+      );
     });
   });
 

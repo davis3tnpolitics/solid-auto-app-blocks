@@ -58,6 +58,14 @@ If you change `next-crud-pages` contracts, update and verify:
 - shared CRUD UI primitive usage (`CrudList`, `CrudTable`, `CrudDetail`, `CrudForm`)
 - snapshot coverage in `automations/tests/test/contracts`
 
+If you change `next-analytics-pages` contracts, update and verify:
+
+- analytics contract discovery from `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
+- generated analytics route map (`/<route-base>`, `/<route-base>/<plural-model>`)
+- generated analytics sections (KPI totals, grouped chart/table, time-series granularity controls)
+- generated semantic-layout flags (`--layout`, `--profile`, `--default-grain`, `--route-base`)
+- snapshot coverage in `automations/tests/test/contracts`
+
 If you change `cube-service-updator` contracts, update and verify:
 
 - generated analytics paths (`src/analytics/cubes`, `src/analytics/contracts`, `src/analytics/index.ts`)

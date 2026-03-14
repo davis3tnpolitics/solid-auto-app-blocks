@@ -49,6 +49,9 @@ describe("create:workflow smoke tests", () => {
       expect(fileExists(workspaceRoot, "apps/workflow-api/src/analytics/cubes/user.cube.ts")).toBe(
         true
       );
+      expect(fileExists(workspaceRoot, "apps/workflow-web/src/app/analytics/users/page.tsx")).toBe(
+        true
+      );
     });
   });
 

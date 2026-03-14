@@ -1,0 +1,71 @@
+{
+  "name": "next-analytics-pages",
+  "description": "Generate analytics pages/components for a Next app from Cube analytics contracts generated in another app.",
+  "entry": "node automations/generators/next-analytics-pages.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target Next app directory name (apps/<app>)."
+    },
+    {
+      "flag": "--analytics-app",
+      "type": "string",
+      "default": "api",
+      "description": "App name that contains generated analytics contracts (apps/<analytics-app>/src/analytics/contracts)."
+    },
+    {
+      "flag": "--model",
+      "type": "string",
+      "required": false,
+      "description": "Single model name to scaffold analytics pages for."
+    },
+    {
+      "flag": "--models",
+      "type": "string",
+      "required": false,
+      "description": "Comma-separated model names to scaffold analytics pages for."
+    },
+    {
+      "flag": "--all",
+      "type": "boolean",
+      "default": false,
+      "description": "Generate analytics pages for all discovered analytics contracts."
+    },
+    {
+      "flag": "--route-base",
+      "type": "string",
+      "default": "analytics",
+      "description": "Route base under src/app where analytics pages are generated."
+    },
+    {
+      "flag": "--layout",
+      "type": "string",
+      "default": "stacked",
+      "description": "Analytics page layout mode (stacked or split)."
+    },
+    {
+      "flag": "--profile",
+      "type": "string",
+      "default": "overview",
+      "description": "Analytics profile hint (overview, operations, executive)."
+    },
+    {
+      "flag": "--default-grain",
+      "type": "string",
+      "default": "day",
+      "description": "Default time-series granularity for generated pages."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": true,
+      "description": "Overwrite generated files unless a no-auto-update directive is present."
+    }
+  ],
+  "outputs": [
+    "apps/<app>/src/lib/analytics/**",
+    "apps/<app>/src/app/<route-base>/**"
+  ]
+}

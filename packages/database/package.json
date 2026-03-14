@@ -16,6 +16,7 @@
     "typecheck": "pnpm db:generate:client && tsc -p tsconfig.json --noEmit",
     "db:generate": "prisma generate --schema ./prisma",
     "db:generate:client": "node ./scripts/db-generate.cjs",
+    "db:seed:fake": "ts-node --transpile-only ./scripts/db-seed-fake.ts",
     "db:migrate": "prisma migrate deploy --schema ./prisma",
     "db:migrate:dev": "prisma migrate dev --schema ./prisma",
     "db:migrate:create-only": "prisma migrate dev --schema ./prisma --create-only --name profile_table",

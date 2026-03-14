@@ -102,6 +102,24 @@ describe("generator contract snapshots", () => {
       ],
       { workspaceRoot }
     );
+
+    runCreateBlock(
+      [
+        "--block",
+        "next-analytics-pages",
+        "--app",
+        "snapshot-crud-web",
+        "--analytics-app",
+        "snapshot-api",
+        "--model",
+        "User",
+        "--layout",
+        "split",
+        "--profile",
+        "operations",
+      ],
+      { workspaceRoot }
+    );
   });
 
   afterAll(() => {
@@ -148,6 +166,15 @@ describe("generator contract snapshots", () => {
     ).toMatchSnapshot();
     expect(
       readFile(workspaceRoot, "apps/snapshot-api/src/analytics/contracts/user.analytics.ts")
+    ).toMatchSnapshot();
+  });
+
+  it("snapshots next-analytics-pages generated contracts", () => {
+    expect(
+      readFile(workspaceRoot, "apps/snapshot-crud-web/src/lib/analytics/users/api.ts")
+    ).toMatchSnapshot();
+    expect(
+      readFile(workspaceRoot, "apps/snapshot-crud-web/src/app/analytics/users/page.tsx")
     ).toMatchSnapshot();
   });
 });

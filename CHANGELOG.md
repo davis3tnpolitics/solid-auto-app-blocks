@@ -18,8 +18,11 @@ All notable changes to this repository are documented in this file.
 - `cube-service-updator` manifest + generator for model-driven Cube analytics scaffolding (`src/analytics/cubes`, `src/analytics/contracts`, `src/analytics/index.ts`).
 - New `cube-helpers` package with typed Cube semantic-layer builders for dimensions/measures/time windows/pre-aggregations.
 - `cube-app` manifest + generator for Cube app scaffolding with Cube CLI-first bootstrap and deterministic fallback templates.
+- `next-analytics-pages` manifest + generator for model-driven Next analytics pages (KPI totals, grouped chart/table, time-series controls) generated from Cube analytics contracts.
+- Root fake-data seeding script: `pnpm seed:fake` (backed by `packages/database/scripts/db-seed-fake.ts`) for schema-driven local test data insertion.
 
 ### Changed
 
 - `gen:examples` and generator docs now align with workflow-first CI behavior for generated apps.
-- `examples` workflow now chains API CRUD + Cube analytics + `next-crud-pages` to scaffold end-to-end CRUD and analytics contracts.
+- `examples` workflow now chains API CRUD + Cube analytics + `next-crud-pages` + `next-analytics-pages` to scaffold end-to-end CRUD and analytics contracts/pages.
+- Pnpm override pins `prisma-generator-fake-data`'s transitive `@faker-js/faker` dependency to a CommonJS-compatible version (`8.4.1`) so `pnpm --filter database db:generate` works reliably in this workspace.

@@ -2,208 +2,251 @@
 
 ## Status
 
-Updated on February 23, 2026.
+Updated on March 1, 2026.
 
-### Implementation Progress (Current Repo State)
+This plan has been converted from proposal mode to execution-tracker mode.
 
-1. Slice 1 complete (initial `packages/cube-helpers` package scaffold with typed builders/contracts).
-2. Slice 2 complete (manifest-driven `cube-service-updator` generator with model/app/force/all/skip-db-generate support and no-auto-update safety).
-3. Slice 3 partially complete (generated analytics contracts + scoped filter contract via `--tenant-field`; deeper API consumer wiring remains).
-4. Slice 6 baseline complete (unit/e2e/snapshot coverage added for `cube-service-updator` and workflow integration).
+### Progress Snapshot
+
+1. Slice 1: Complete
+2. Slice 2: Complete
+3. Slice 3: Partial
+4. Slice 4: Partial
+5. Slice 5: Complete
+6. Slice 6: Partial
+7. Slice 7: Partial
 
 ## Goal
 
-Add a manifest-driven CubeJS semantic layer that scaffolds analytics services per model (similar to `api-updator`) and establish a shared `cube-helpers` package for reusable analytics patterns.
+Ship a stable, manifest-driven Cube semantic layer that can:
+
+1. Generate model analytics artifacts from Prisma contracts.
+2. Expose typed contracts that API and web consumers can use safely.
+3. Evolve into full analytics page generation with reusable UI primitives.
 
 ## Scope
 
-1. Create a manifest-driven generator for CubeJS services from selected Prisma models.
-2. Create `packages/cube-helpers` as the reusable analytics abstraction layer.
-3. Support flexible analytics patterns (totals, grouped aggregations, date buckets, rollups, derived metrics, and domain-specific dimensions).
-4. Define stable contracts from generated Cube services to app/API consumers.
-5. Add manifest blocks that can scaffold analytics-oriented frontend pages once base CRUD scaffolding exists.
-6. Add tests, governance, and CI gates so generated analytics contracts stay stable.
+1. Manifest-driven Cube service generation from selected Prisma models.
+2. Reusable `packages/cube-helpers` abstractions.
+3. Typed contracts for generated artifacts and downstream consumers.
+4. Test, CI, and governance gates that protect contract stability.
 
 ## Non-Goals
 
-1. Solving every BI/semantic edge case in v1.
-2. Replacing CubeJS-native features with bespoke wrappers.
-3. Shipping a final, one-size-fits-all dashboard design system.
+1. Covering every BI edge case in v1.
+2. Replacing Cube-native capabilities with custom wrappers.
+3. Delivering a final dashboard design system in this plan.
 
 ---
 
-## What Was Missing (Now Explicit)
+## Current Implemented Surface
 
-1. A hard contract between generated Cube artifacts and downstream consumers (API/web).
-2. Tenancy/security filter conventions (required scoped filters, safe defaults).
-3. Pre-aggregation/caching conventions for cost and performance.
-4. Observability conventions (query logging hooks, slow-query thresholds, trace ids).
-5. Clear dependency sequencing with Next CRUD generation work.
+1. `cube-service-updator` manifest and generator:
+   - `--app`, `--model`, `--models`, `--all`, `--tenant-field`, `--skip-db-generate`, `--force`
+   - generated outputs in `src/analytics/cubes`, `src/analytics/contracts`, and `src/analytics/index.ts`
+2. `cube-helpers` package:
+   - typed contracts (`AnalyticsQueryContract`, cube dimension/measure/time/pre-aggregation types)
+   - baseline builders for default measures/time dimensions/pre-aggregations
+3. workflow integration:
+   - `examples` workflow chains API CRUD generation + cube analytics generation + web CRUD pages + web analytics pages
+4. automated coverage:
+   - unit + e2e + snapshot tests for `cube-service-updator` and `next-analytics-pages`
+   - governance/manifest checks and CI execution paths already present
 
 ---
 
 ## Dependency Sequencing With Next CRUD Plan
 
-1. `cube-helpers` and Cube service generation should start now (independent of page templates).
-2. Analytics page block generation should run after Next CRUD plan has delivered reusable UI primitives and route-generation contracts (`CrudList`, `CrudTable`, `CrudDetail`, `CrudForm`, plus manifest options).
-3. The target flow should be:
-   - generate Cube services
-   - generate API-facing analytics contracts/routes
-   - generate manifest-driven analytics page blocks that render charts/tables against those contracts
+1. Keep Cube service + contract generation independent (already in place).
+2. Add API consumer scaffolding (analytics routes/modules) before frontend analytics pages.
+3. Generate analytics page blocks after backend analytics contracts and endpoints are standardized.
+
+Target sequence:
+
+1. generate Cube services/contracts
+2. generate API-facing analytics contracts/routes
+3. generate analytics pages/components consuming those routes
 
 ---
 
 ## Slice 1: Foundation and Package Setup
 
-### Deliverables
+### Status
 
-1. Add `packages/cube-helpers` scaffold:
-   - typed analytics contracts
-   - utilities for dimensions/measures/time windows
-   - helper builders for totals and grouped aggregations
-2. Add package scripts:
-   - `build`
-   - `typecheck`
-   - `lint` (if package lint baseline is active)
-3. Add versioning/contract boundaries for public helper APIs.
+Complete.
 
-### Exit Criteria
+### Delivered
 
-1. `cube-helpers` can be imported by generators and Cube app code.
-2. Package exposes stable typed entrypoints for common analytics operations.
+1. `packages/cube-helpers` scaffold with typed exports.
+2. Builders for dimensions/measures/time windows/pre-aggregations.
+3. Package scripts and import-ready public entrypoints.
+
+### Exit Criteria Check
+
+1. Importable by generators and apps: met.
+2. Stable typed helper entrypoints: met for baseline API.
 
 ---
 
 ## Slice 2: Cube Service Generator (Single Model)
 
-### Deliverables
+### Status
 
-1. Add generator block (for example `cube-service-updator`) with manifest.
-2. Generate Cube service artifacts for one model:
-   - dimensions
-   - base measures
-   - totals
-   - common aggregations (`count`, `sum`, `avg`, `min`, `max`)
-3. Include flags aligned with existing automation style:
-   - `--model`
-   - `--app`
-   - `--force`
-   - `--skip-db-generate` (if relevant)
-4. Respect `/* no-auto-update */` directives in generated files.
+Complete.
 
-### Exit Criteria
+### Delivered
 
-1. One command scaffolds analytics service files for a model.
-2. Output is deterministic and safe to rerun.
+1. Manifest-backed `cube-service-updator` generator.
+2. Generated cube artifact + analytics contract per model.
+3. No-auto-update safeguards and idempotent index export updates.
+
+### Exit Criteria Check
+
+1. One-command generation for a model: met.
+2. Deterministic reruns with safety controls: met.
 
 ---
 
 ## Slice 3: Service-to-Consumer Contracts
 
-### Deliverables
+### Status
 
-1. Define generated query/response contracts used by API and frontend consumers.
-2. Add naming and path conventions for generated analytics endpoints.
-3. Add required guardrails for scoped filters (tenant/org/user boundary patterns).
-4. Add extension hooks for domain-specific filters and computed metrics.
+Partial.
 
-### Exit Criteria
+### Delivered
 
-1. Consumers can rely on a stable, typed analytics contract.
-2. Security/tenancy defaults are explicit and testable.
+1. Generated typed contract files under `src/analytics/contracts`.
+2. Scoped filter contract support through `--tenant-field`.
+3. Stable path conventions for generated cube artifacts.
+
+### Remaining
+
+1. Generate API consumer layer from analytics contracts (routes/controllers/services/modules).
+2. Standardize request/response contract shape for API-to-web analytics calls.
+3. Add extension hooks for domain-specific computed metrics and filter transforms.
+
+### Exit Criteria Check
+
+1. Stable typed consumer contract: partially met.
+2. Explicit tenancy defaults: met at artifact contract level, not yet end-to-end at API boundary.
 
 ---
 
 ## Slice 4: Multi-Model and Rich Aggregation Profiles
 
-### Deliverables
+### Status
 
-1. Support `--models` and `--all` model selection.
-2. Add aggregation profile support:
-   - default profile (safe baseline)
-   - configurable profile (custom totals, groupings, rollup windows)
-3. Add nuanced analytics flags:
-   - time-grain presets
-   - dimension include/exclude lists
-   - derived metric templates
-4. Add pre-aggregation and caching profile hooks.
+Partial.
 
-### Exit Criteria
+### Delivered
 
-1. Generator supports both simple and advanced analytics use cases.
-2. Teams can customize output without forking generator internals.
+1. Multi-model generation (`--models`, `--all`) is implemented.
+2. Baseline pre-aggregation/time-dimension defaults exist in helper builders.
+
+### Remaining
+
+1. Profile-level generation options (safe baseline vs. configurable profile presets).
+2. Flags for dimension include/exclude, grain presets, and derived metric templates.
+3. First-class caching/pre-aggregation profile hooks at generator level.
+
+### Exit Criteria Check
+
+1. Simple multi-model use case: met.
+2. Advanced profile customization without forking: not yet met.
 
 ---
 
 ## Slice 5: Analytics Page Block Generation (Depends on Next CRUD)
 
-### Deliverables
+### Status
 
-1. Add manifest block(s) for analytics page scaffolding that consume generated analytics contracts.
-2. Generate baseline analytics pages/components:
-   - KPI/total summary section
-   - grouped chart/table section
-   - time-series section with date-grain controls
-3. Reuse shared UI primitives from `packages/ui` and the CRUD-generation foundation.
-4. Provide semantic-layer customization flags (layout/profile-level options).
+Complete.
+
+### Delivered
+
+1. Added `next-analytics-pages` manifest + generator block.
+2. Generated baseline analytics sections:
+   - KPI summary
+   - grouped table/chart
+   - time-series with grain controls
+3. Reused shared `packages/ui` primitives (`DataBars`, `BarChartCard`, `LineChartCard`, `Table`, `ChartCard`, Cube adapters).
+4. Added semantic-layer customization flags:
+   - `--layout` (`stacked`, `split`)
+   - `--profile` (`overview`, `operations`, `executive`)
+   - `--default-grain` (`day`, `week`, `month`, `quarter`, `year`)
+   - `--route-base` for custom analytics route namespaces
+5. Added workflow integration and test coverage (unit + e2e + snapshot).
 
 ### Exit Criteria
 
-1. Analytics pages can be generated from manifests, not hand-wired one-offs.
-2. Generated pages align with existing app CRUD/UI generation patterns.
+1. Analytics pages generated from manifests, not hand-wired: met.
+2. Generated pages align with existing CRUD generation conventions: met.
 
 ---
 
 ## Slice 6: Test Strategy and Contract Stability
 
-### Deliverables
+### Status
 
-1. Unit tests for helper package:
-   - totals/aggregation logic
-   - time window normalization
-   - edge cases (null values, sparse data, mixed types)
-2. Generator unit tests:
-   - model discovery
-   - naming/path behavior
-   - flag parsing and guardrails
-3. Snapshot/contract tests for representative generated Cube service files.
-4. E2E smoke coverage via `create:block`.
+Partial.
 
-### Exit Criteria
+### Delivered
 
-1. Generator/helper behavior is regression-resistant.
-2. Contract changes are obvious in snapshot diffs.
+1. Generator unit tests for discovery, flag logic, and safeguards.
+2. Snapshot contract coverage for generated artifacts.
+3. E2E `create:block` and `create:workflow` smoke coverage including cube step.
+
+### Remaining
+
+1. Dedicated `cube-helpers` package unit tests for builders/patterns edge cases.
+2. Expanded regression coverage for advanced analytics profile options (once Slice 4 lands).
+
+### Exit Criteria Check
+
+1. Generator regressions are detectable: met.
+2. Full helper+generator stability envelope: not yet met.
 
 ---
 
 ## Slice 7: CI + Governance
 
-### Deliverables
+### Status
 
-1. Add Cube generator/helper tests to CI gates.
-2. Add governance checks:
-   - manifest schema/entry validation
-   - contract test updates for behavioral changes
-   - changelog policy for breaking contract changes
-3. Add operational quality gates:
-   - required performance budget checks for representative queries
-   - required security filter coverage checks
+Partial.
 
-### Exit Criteria
+### Delivered
 
-1. Cube generator/helper contracts are CI-enforced.
-2. Changes remain traceable, reviewable, and production-safe.
+1. CI runs automation tests and governance checks.
+2. Manifest/workflow contract linting is enforced.
+3. Changelog/docs sync checks exist for automation contract changes.
+
+### Remaining
+
+1. Query-performance budget checks for representative analytics scenarios.
+2. Security filter coverage checks for generated analytics artifacts.
+3. Explicit governance policy for helper API breaking changes.
+
+### Exit Criteria Check
+
+1. Baseline CI governance for generator contracts: met.
+2. Operational analytics quality gates: not yet met.
 
 ---
 
-## Recommended Execution Order
+## Next Milestones (What to Build Next)
 
-1. Slice 1
-2. Slice 2
-3. Slice 3
-4. Slice 6
-5. Slice 4
-6. Slice 5 (after Next CRUD slices that provide reusable UI/page infrastructure)
-7. Slice 7
+1. Complete Slice 3 by adding analytics API endpoint/module generation from `src/analytics/contracts`.
+2. Complete Slice 4 by introducing profile flags and customizable aggregation templates.
+3. Complete Slice 6 for helper tests (`packages/cube-helpers` unit suite).
+4. Complete Slice 7 operational gates (performance/security checks).
 
-This order ships a stable semantic baseline early, hardens contracts/tests before expansion, then layers analytics-page generation after the Next CRUD foundation is ready.
+---
+
+## Updated Recommended Execution Order
+
+1. Slice 3 completion (API consumer contract wiring)
+2. Slice 6 completion (helper test coverage)
+3. Slice 4 completion (rich profile generation)
+4. Slice 7 completion (operational governance)
+
+This order closes contract gaps first, then unlocks richer generation and analytics UI scaffolding on top of stable interfaces.

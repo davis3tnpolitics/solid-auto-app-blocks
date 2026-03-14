@@ -767,6 +767,464 @@ jobs:
 "
 `;
 
+exports[`generator contract snapshots > snapshots next-analytics-pages generated contracts 1`] = `
+"import type { Granularity } from "@workspace/ui";
+
+import { requestAnalytics } from "@/lib/analytics/client";
+
+import { userAnalyticsContract } from "./contract";
+
+export type AnalyticsScalar = string | number | boolean | null;
+export type AnalyticsRow = Record<string, AnalyticsScalar>;
+
+export type AnalyticsResponse = {
+  rows: AnalyticsRow[];
+  meta?: Record<string, unknown>;
+};
+
+type ScopeFilters = Record<string, AnalyticsScalar | undefined>;
+
+type UserAnalyticsOptions = {
+  dimension?: string;
+  measure?: string;
+  timeDimension?: string;
+  granularity?: Granularity;
+  limit?: number;
+  from?: string;
+  to?: string;
+  scope?: ScopeFilters;
+};
+
+function toScopeParams(scope?: ScopeFilters) {
+  const scopedFilters = userAnalyticsContract.scopedFilters;
+  if (!scope || !scopedFilters.length) return {};
+
+  return Object.fromEntries(
+    scopedFilters
+      .map((field) => [field, scope[field]])
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+  );
+}
+
+export async function fetchUserAnalyticsSummary(
+  options: UserAnalyticsOptions = {}
+): Promise<AnalyticsResponse> {
+  const totals = userAnalyticsContract.totals.length
+    ? userAnalyticsContract.totals
+    : userAnalyticsContract.measures;
+
+  return requestAnalytics<AnalyticsResponse>("/analytics/users/summary", {
+    measures: totals.join(","),
+    ...toScopeParams(options.scope),
+  });
+}
+
+export async function fetchUserAnalyticsGrouped(
+  options: UserAnalyticsOptions = {}
+): Promise<AnalyticsResponse> {
+  const dimension =
+    options.dimension ?? userAnalyticsContract.dimensions[0] ?? "id";
+  const measure =
+    options.measure ??
+    userAnalyticsContract.measures.find(
+      (entry) => !userAnalyticsContract.totals.includes(entry)
+    ) ??
+    userAnalyticsContract.measures[0] ??
+    "count";
+
+  return requestAnalytics<AnalyticsResponse>("/analytics/users/grouped", {
+    dimension,
+    measure,
+    limit: options.limit ?? 12,
+    ...toScopeParams(options.scope),
+  });
+}
+
+export async function fetchUserAnalyticsTimeSeries(
+  options: UserAnalyticsOptions = {}
+): Promise<AnalyticsResponse> {
+  const measure =
+    options.measure ??
+    userAnalyticsContract.measures.find(
+      (entry) => !userAnalyticsContract.totals.includes(entry)
+    ) ??
+    userAnalyticsContract.measures[0] ??
+    "count";
+  const timeDimension =
+    options.timeDimension ??
+    userAnalyticsContract.defaultTimeDimension ??
+    userAnalyticsContract.timeDimensions[0] ??
+    "createdAt";
+
+  return requestAnalytics<AnalyticsResponse>("/analytics/users/timeseries", {
+    measure,
+    timeDimension,
+    granularity: options.granularity ?? "day",
+    from: options.from,
+    to: options.to,
+    ...toScopeParams(options.scope),
+  });
+}
+"
+`;
+
+exports[`generator contract snapshots > snapshots next-analytics-pages generated contracts 2`] = `
+""use client";
+
+import * as React from "react";
+import Link from "next/link";
+
+import {
+  BarChartCard,
+  Button,
+  ChartCard,
+  DataBars,
+  LineChartCard,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adaptCubeSingleSeriesCategorical,
+  adaptCubeTableList,
+  adaptCubeTimeSeries,
+  toNameValuePairs,
+  type Granularity,
+} from "@workspace/ui";
+
+import { analyticsUiConfig } from "@/lib/analytics/ui-config";
+import {
+  fetchUserAnalyticsGrouped,
+  fetchUserAnalyticsSummary,
+  fetchUserAnalyticsTimeSeries,
+  type AnalyticsRow,
+} from "@/lib/analytics/users/api";
+import { userAnalyticsContract } from "@/lib/analytics/users/contract";
+
+const GRANULARITY_OPTIONS = ["day", "week", "month", "quarter", "year"] as const;
+type SupportedGranularity = (typeof GRANULARITY_OPTIONS)[number];
+
+type LoadState = {
+  summaryRows: AnalyticsRow[];
+  groupedRows: AnalyticsRow[];
+  timeRows: AnalyticsRow[];
+  loading: boolean;
+  error: string | null;
+};
+
+const DEFAULT_DIMENSION = "id";
+const DEFAULT_MEASURE = "sumAge";
+const DEFAULT_TIME_DIMENSION = "createdAt";
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return "Unable to load analytics data.";
+}
+
+function parseNumber(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const parsed = Number(value.replaceAll(",", "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (typeof value === "boolean") return value ? 1 : 0;
+  return 0;
+}
+
+function toLabel(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function normalizeSummaryRows(rows: AnalyticsRow[], fallbackMeasures: readonly string[]) {
+  if (!rows.length) {
+    return fallbackMeasures.slice(0, 6).map((measure) => ({
+      name: toLabel(measure),
+      value: 0,
+    }));
+  }
+
+  const first = rows[0] || {};
+  if ("name" in first && "value" in first) {
+    return rows.map((row) => ({
+      name: String(row.name ?? ""),
+      value: parseNumber(row.value),
+    }));
+  }
+
+  return fallbackMeasures.slice(0, 6).map((measure) => ({
+    name: toLabel(measure),
+    value: parseNumber(first[measure]),
+  }));
+}
+
+function isGranularity(value: string): value is SupportedGranularity {
+  return GRANULARITY_OPTIONS.includes(value as SupportedGranularity);
+}
+
+export default function UserAnalyticsPage() {
+  const [granularity, setGranularity] = React.useState<SupportedGranularity>(
+    "day"
+  );
+  const [state, setState] = React.useState<LoadState>({
+    summaryRows: [],
+    groupedRows: [],
+    timeRows: [],
+    loading: true,
+    error: null,
+  });
+
+  const dimension = userAnalyticsContract.dimensions[0] ?? DEFAULT_DIMENSION;
+  const measure =
+    userAnalyticsContract.measures.find(
+      (entry) => !userAnalyticsContract.totals.includes(entry)
+    ) ??
+    userAnalyticsContract.measures[0] ??
+    DEFAULT_MEASURE;
+  const timeDimension =
+    userAnalyticsContract.defaultTimeDimension ??
+    userAnalyticsContract.timeDimensions[0] ??
+    DEFAULT_TIME_DIMENSION;
+
+  React.useEffect(() => {
+    let active = true;
+
+    setState((current) => ({
+      ...current,
+      loading: true,
+      error: null,
+    }));
+
+    Promise.all([
+      fetchUserAnalyticsSummary(),
+      fetchUserAnalyticsGrouped({
+        dimension,
+        measure,
+        limit: 12,
+      }),
+      fetchUserAnalyticsTimeSeries({
+        measure,
+        timeDimension,
+        granularity: granularity as Granularity,
+      }),
+    ])
+      .then(([summary, grouped, timeSeries]) => {
+        if (!active) return;
+        setState({
+          summaryRows: summary.rows ?? [],
+          groupedRows: grouped.rows ?? [],
+          timeRows: timeSeries.rows ?? [],
+          loading: false,
+          error: null,
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error: getErrorMessage(error),
+        }));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dimension, granularity, measure, timeDimension]);
+
+  const summaryPairs = React.useMemo(() => {
+    const normalized = normalizeSummaryRows(state.summaryRows, userAnalyticsContract.totals);
+    const summaryResult = adaptCubeSingleSeriesCategorical(
+      {
+        rows: normalized,
+      },
+      {
+        dimensionKey: "name",
+        measureKey: "value",
+        indexKey: "name",
+        valueKey: "value",
+        sortBy: "value",
+        sortDirection: "desc",
+      }
+    );
+    return toNameValuePairs(summaryResult);
+  }, [state.summaryRows]);
+
+  const groupedChart = React.useMemo(
+    () =>
+      adaptCubeSingleSeriesCategorical(
+        { rows: state.groupedRows },
+        {
+          dimensionKey: dimension,
+          measureKey: measure,
+          indexKey: "category",
+          valueKey: "value",
+          sortBy: "value",
+          sortDirection: "desc",
+        }
+      ),
+    [dimension, measure, state.groupedRows]
+  );
+
+  const groupedTable = React.useMemo(
+    () =>
+      adaptCubeTableList(
+        { rows: state.groupedRows },
+        {
+          columns: [dimension, measure],
+          numericColumns: [measure],
+          sortBy: measure,
+          sortDirection: "desc",
+          stringFallback: "-",
+          numberFallback: 0,
+        }
+      ),
+    [dimension, measure, state.groupedRows]
+  );
+
+  const timeSeries = React.useMemo(
+    () =>
+      adaptCubeTimeSeries(
+        { rows: state.timeRows },
+        {
+          timeDimensionKey: timeDimension,
+          measureKey: measure,
+          indexKey: "bucket",
+          valueKey: "value",
+          granularity: granularity as Granularity,
+          sortDirection: "asc",
+        }
+      ),
+    [granularity, measure, state.timeRows, timeDimension]
+  );
+
+  const splitLayout = analyticsUiConfig.layout === "split";
+
+  return (
+    <main className={analyticsUiConfig.containerClassName}>
+      <div className={analyticsUiConfig.contentClassName}>
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                Analytics
+              </p>
+              <h1 className="text-3xl font-semibold">User Analytics</h1>
+              <p className="text-muted-foreground">
+                Cube: Users
+              </p>
+            </div>
+            <Button asChild variant="outline">
+              <Link href={"/" + analyticsUiConfig.routeBase}>All analytics pages</Link>
+            </Button>
+          </div>
+          {state.error ? (
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {state.error}
+            </p>
+          ) : null}
+        </header>
+
+        <DataBars
+          title="KPI totals"
+          description="High-level totals derived from the analytics contract."
+          data={summaryPairs}
+          loading={state.loading}
+          emptyLabel="No KPI totals available"
+          valueFormatter={(value) => Number(value).toLocaleString()}
+        />
+
+        <section className={splitLayout ? "grid gap-6 xl:grid-cols-2" : "space-y-6"}>
+          <BarChartCard
+            title="Grouped breakdown"
+            description={"Dimension: " + dimension + " · Measure: " + measure}
+            data={groupedChart.data}
+            index={groupedChart.indexKey}
+            categories={groupedChart.categories}
+            loading={state.loading}
+            emptyLabel="No grouped data available"
+            valueFormatter={(value) => Number(value).toLocaleString()}
+          />
+
+          <ChartCard
+            title="Grouped table"
+            description="Tabular view of grouped analytics results."
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {groupedTable.columns.map((column) => (
+                    <TableHead key={column}>{toLabel(column)}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupedTable.rows.length ? (
+                  groupedTable.rows.slice(0, 12).map((row, index) => (
+                    <TableRow key={index}>
+                      {groupedTable.columns.map((column) => (
+                        <TableCell key={column + "-" + index}>
+                          {String(row[column] ?? "-")}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={Math.max(groupedTable.columns.length, 1)}
+                      className="text-muted-foreground"
+                    >
+                      No grouped rows available.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ChartCard>
+        </section>
+
+        <LineChartCard
+          title="Time series"
+          description={"Time dimension: " + timeDimension + " · Measure: " + measure}
+          data={timeSeries.data}
+          index={timeSeries.indexKey}
+          categories={timeSeries.categories}
+          loading={state.loading}
+          emptyLabel="No time-series data available"
+          valueFormatter={(value) => Number(value).toLocaleString()}
+          actions={
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Granularity</span>
+              <select
+                className="rounded-md border bg-background px-2 py-1 text-xs"
+                value={granularity}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  if (isGranularity(value)) setGranularity(value);
+                }}
+              >
+                {GRANULARITY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {toLabel(option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        />
+      </div>
+    </main>
+  );
+}
+"
+`;
+
 exports[`generator contract snapshots > snapshots next-app core files 1`] = `
 "{
   "name": "snapshot-web",

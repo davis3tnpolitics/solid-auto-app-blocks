@@ -78,6 +78,26 @@ JWT_SECRET=...
 pnpm --filter web dev
 ```
 
+### Fake data for fast UI testing
+
+Use the schema-driven fake seeder to quickly populate data for generated screens.
+
+```bash
+# regenerate client/contracts/docs/fake-data factories
+pnpm --filter database db:generate
+
+# preview records only (no DB writes)
+pnpm seed:fake -- --dry-run true --count 5
+
+# seed specific models
+pnpm seed:fake -- --models User,Account --count 25
+
+# truncate selected models then reseed
+pnpm seed:fake -- --models User,Account,Session,Authenticator --count 50 --truncate true
+```
+
+`db:seed:fake` reads model metadata from the generated Prisma client, uses generated fake-data factories (`packages/database/stubs/data.ts`) when available, and backfills required relation/scalar fields before inserts.
+
 ## Automation generators
 
 Generators are implemented in `automations/generators/*` with matching manifests in `automations/manifests/*`.
@@ -101,6 +121,7 @@ pnpm verify
 pnpm test:automations
 pnpm test:ui
 pnpm typecheck
+pnpm seed:fake -- --count 25 --truncate true
 pnpm test:automations:update
 pnpm gen:examples -- --web <next-app-name> --api <nest-app-name> --model <Model> --web-port 3100 --api-port 3101 --force true|false --skip-db-generate true|false --skip-install true|false
 pnpm create:next-app -- --name <app> [--port <port>] [--sample true|false] [--force]
@@ -112,8 +133,11 @@ pnpm update:api -- --app <nest-app-name> --models User,Account,Session
 pnpm update:api -- --app <nest-app-name> --all
 pnpm update:cube -- --app <app-name> --model <Model>
 pnpm update:cube -- --app <app-name> --models User,Account
+pnpm update:analytics-pages -- --app <next-app-name> --analytics-app <api-app-name> --model <Model>
 pnpm create:block -- --block next-crud-pages --app <next-app-name> --model <Model>
 pnpm create:block -- --block next-crud-pages --app <next-app-name> --models User,Account --list-mode infinite --layout cards --form-style two-column
+pnpm create:block -- --block next-analytics-pages --app <next-app-name> --analytics-app <api-app-name> --model <Model>
+pnpm create:block -- --block next-analytics-pages --app <next-app-name> --analytics-app <api-app-name> --all --layout split --profile operations
 ```
 
 `pnpm gen:examples` runs a full root-level generation flow:
@@ -123,6 +147,7 @@ pnpm create:block -- --block next-crud-pages --app <next-app-name> --models User
 - scaffolds a CRUD resource for one model (default `User`)
 - scaffolds Cube analytics artifacts for that model in the API app
 - scaffolds Next CRUD hooks and list/detail/create/edit pages for that model in the web app
+- scaffolds Next analytics pages (KPI/grouped/time-series) in the web app from generated analytics contracts
 
 `pnpm create:block` is the manifest-driven entrypoint. It resolves the block from `automations/manifests/*.json` and runs its configured generator.
 
@@ -249,6 +274,29 @@ pnpm create:block -- --block next-crud-pages --app web --model User --ui-preset 
 - supports manifest-driven list behavior via `--list-mode table|infinite`
 - includes optimistic create/update/delete cache updates in generated React Query hooks
 - supports manifest-driven UI options: `--ui-preset`, `--layout`, `--form-style`, `--theme-token-file`
+
+### Generate Next analytics pages from generated Cube contracts
+
+```bash
+pnpm create:block -- --block next-analytics-pages --app web --analytics-app api --model User
+pnpm create:block -- --block next-analytics-pages --app web --analytics-app api --models User,Account
+pnpm create:block -- --block next-analytics-pages --app web --analytics-app api --all
+pnpm create:block -- --block next-analytics-pages --app web --analytics-app api --model User --layout split --profile operations --default-grain month
+pnpm create:block -- --block next-analytics-pages --app web --analytics-app api --model User --route-base insights/analytics
+```
+
+`next-analytics-pages` behavior:
+
+- reads generated analytics contracts from `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
+- generates shared analytics client/config in `src/lib/analytics/`
+- generates model-specific analytics contract + API helpers in `src/lib/analytics/<plural-model>/`
+- generates route pages in `src/app/<route-base>/<plural-model>/page.tsx` with:
+  - KPI totals section
+  - grouped chart + grouped table section
+  - time-series chart section with granularity control
+- generates an analytics index route (`src/app/<route-base>/page.tsx`) linking to generated model pages
+- supports semantic-layer customization flags: `--layout`, `--profile`, `--default-grain`, `--route-base`
+- respects `/* no-auto-update */` and `/*_ no-auto-update _*/` markers
 
 `next-app` and `nest-app` run `pnpm install` automatically after generation.
 Use `--skip-install` when chaining multiple generators and installing once at the end.

@@ -12,7 +12,9 @@
     "add:auth": "node automations/generators/front-end/add-ons/add-auth.js",
     "update:api": "node automations/generators/api-updator.js",
     "update:cube": "node automations/generators/cube-service-updator.js",
+    "update:analytics-pages": "node automations/generators/next-analytics-pages.js",
     "gen:examples": "node automations/scripts/gen-examples.mjs",
+    "seed:fake": "pnpm --filter database db:seed:fake",
     "dev": "pnpm -r --parallel --filter \"./apps/*\" --if-present dev",
     "build": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" --if-present build",
     "lint:workspace": "node automations/scripts/lint-workspace.mjs",
@@ -25,6 +27,11 @@
     "test:ui": "pnpm --filter @workspace/ui test:coverage",
     "test": "pnpm test:automations && pnpm test:ui",
     "verify": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "pnpm": {
+    "overrides": {
+      "prisma-generator-fake-data>@faker-js/faker": "8.4.1"
+    }
   },
   "keywords": [],
   "author": "",
