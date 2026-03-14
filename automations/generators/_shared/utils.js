@@ -4,6 +4,9 @@ const path = require("path");
 const repoRoot = process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT
   ? path.resolve(process.env.SOLID_AUTO_APP_BLOCKS_REPO_ROOT)
   : path.resolve(__dirname, "../../..");
+const scriptRoot = process.env.SOLID_AUTO_APP_BLOCKS_SCRIPT_ROOT
+  ? path.resolve(process.env.SOLID_AUTO_APP_BLOCKS_SCRIPT_ROOT)
+  : repoRoot;
 const packagesDir = path.join(repoRoot, "packages");
 
 function toCamelCase(input) {
@@ -93,6 +96,7 @@ function readWorkspacePackages() {
 
 module.exports = {
   repoRoot,
+  scriptRoot,
   packagesDir,
   parseCliFlags,
   writeFileSafe,

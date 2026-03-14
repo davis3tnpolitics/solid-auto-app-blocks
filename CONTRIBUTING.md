@@ -67,6 +67,16 @@ If you change `next-analytics-pages` contracts, update and verify:
 - generated semantic-layout flags (`--layout`, `--profile`, `--default-grain`, `--route-base`)
 - snapshot coverage in `automations/tests/test/contracts`
 
+If you change `next-compose-page` contracts, update and verify:
+
+- page-spec contract and preset validity (`automations/specs/pages/*.json`)
+- section renderer support (`crud-list`, `analytics-bar-chart`, `analytics-line-chart`, `analytics-table`)
+- contract resolution behavior for:
+  - `packages/database/contracts/models/*.model.ts`
+  - `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
+- smoke coverage in `automations/tests/test/e2e/create-block.smoke.test.js`
+- README command/examples for compose-page usage
+
 If you change `cube-service-updator` contracts, update and verify:
 
 - generated analytics paths (`src/analytics/cubes`, `src/analytics/contracts`, `src/analytics/index.ts`)

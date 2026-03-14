@@ -20,6 +20,7 @@ All notable changes to this repository are documented in this file.
 - Dedicated `cube-helpers` unit test suite (`packages/cube-helpers/test`) plus root script `pnpm test:cube-helpers`.
 - `cube-app` manifest + generator for Cube app scaffolding with Cube CLI-first bootstrap and deterministic fallback templates.
 - `next-analytics-pages` manifest + generator for model-driven Next analytics pages (KPI totals, grouped chart/table, time-series controls) generated from Cube analytics contracts.
+- `next-compose-page` manifest + generator for customizable, spec-driven Next page composition (JSON preset/spec) with contract-aware list/chart/table sections.
 - Root fake-data seeding script: `pnpm seed:fake` (backed by `packages/database/scripts/db-seed-fake.ts`) for schema-driven local test data insertion.
 
 ### Changed

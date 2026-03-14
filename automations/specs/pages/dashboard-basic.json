@@ -1,0 +1,33 @@
+{
+  "kind": "next-page-spec",
+  "version": 1,
+  "route": "{{route}}",
+  "title": "{{model}} Dashboard",
+  "description": "Composed dashboard page with a CRUD list and analytics chart section.",
+  "layout": "stack",
+  "sections": [
+    {
+      "id": "model-list",
+      "type": "crud-list",
+      "title": "{{model}} list",
+      "description": "Browse and manage {{model}} records.",
+      "pageSize": 10,
+      "contractRef": {
+        "source": "database",
+        "model": "{{model}}"
+      }
+    },
+    {
+      "id": "model-analytics",
+      "type": "analytics-bar-chart",
+      "title": "{{model}} analytics",
+      "description": "Grouped analytics powered by generated Cube contracts.",
+      "limit": 12,
+      "contractRef": {
+        "source": "analytics",
+        "app": "{{analyticsApp}}",
+        "model": "{{model}}"
+      }
+    }
+  ]
+}

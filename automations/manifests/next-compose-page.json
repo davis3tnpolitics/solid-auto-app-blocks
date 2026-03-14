@@ -1,0 +1,52 @@
+{
+  "name": "next-compose-page",
+  "description": "Generate a composed Next.js page from a JSON spec/preset (customizable list/chart/table layout).",
+  "entry": "node automations/generators/next-compose-page.js",
+  "options": [
+    {
+      "flag": "--app",
+      "type": "string",
+      "required": true,
+      "description": "Target app directory name (apps/<app>)."
+    },
+    {
+      "flag": "--spec",
+      "type": "string",
+      "required": false,
+      "description": "Path to a page spec JSON file."
+    },
+    {
+      "flag": "--preset",
+      "type": "string",
+      "default": "dashboard-basic",
+      "description": "Page spec preset name from automations/specs/pages (without .json)."
+    },
+    {
+      "flag": "--model",
+      "type": "string",
+      "default": "User",
+      "description": "Template variable used by presets/fallback spec."
+    },
+    {
+      "flag": "--route",
+      "type": "string",
+      "default": "dashboard",
+      "description": "Template variable used by presets/fallback spec."
+    },
+    {
+      "flag": "--analytics-app",
+      "type": "string",
+      "default": "api",
+      "description": "Default analytics app name used by analytics contract refs."
+    },
+    {
+      "flag": "--force",
+      "type": "boolean",
+      "default": true,
+      "description": "Overwrite generated page unless a no-auto-update directive is present."
+    }
+  ],
+  "outputs": [
+    "apps/<app>/src/app/<route>/page.tsx"
+  ]
+}

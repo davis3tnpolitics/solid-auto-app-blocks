@@ -4,6 +4,7 @@ const {
   readFile,
   fileExists,
   writeJson,
+  writeFile,
 } = require("../helpers/workspace");
 const { runCreateBlock } = require("../helpers/cli");
 
@@ -30,6 +31,7 @@ describe("create:block smoke tests", () => {
       expect(result.stdout).toContain("github-workflow-app");
       expect(result.stdout).toContain("next-crud-pages");
       expect(result.stdout).toContain("next-analytics-pages");
+      expect(result.stdout).toContain("next-compose-page");
     });
   });
 
@@ -470,6 +472,55 @@ describe("create:block smoke tests", () => {
       expect(page).toContain(
         "const [granularity, setGranularity] = React.useState<SupportedGranularity>("
       );
+    });
+  });
+
+  it("generates a composed dashboard page from preset spec", () => {
+    withWorkspace((workspaceRoot) => {
+      runCreateBlock(
+        ["--block", "next-app", "--name", "compose-web", "--skip-install", "--skip-ci-workflow"],
+        { workspaceRoot }
+      );
+
+      writeFile(
+        workspaceRoot,
+        "apps/compose-api/src/analytics/contracts/user.analytics.ts",
+        `export const userAnalyticsContract = {
+  cube: "Users",
+  dimensions: ["email"],
+  measures: ["count"],
+  totals: ["count"],
+  timeDimensions: ["createdAt"],
+  defaultTimeDimension: "createdAt",
+  scopedFilters: [],
+} as const;
+`
+      );
+
+      runCreateBlock(
+        [
+          "--block",
+          "next-compose-page",
+          "--app",
+          "compose-web",
+          "--preset",
+          "dashboard-basic",
+          "--route",
+          "dashboard",
+          "--model",
+          "User",
+          "--analytics-app",
+          "compose-api",
+        ],
+        { workspaceRoot }
+      );
+
+      expect(fileExists(workspaceRoot, "apps/compose-web/src/app/dashboard/page.tsx")).toBe(true);
+      const page = readFile(workspaceRoot, "apps/compose-web/src/app/dashboard/page.tsx");
+      expect(page).toContain("CrudList");
+      expect(page).toContain("useUsers");
+      expect(page).toContain("fetchUserAnalyticsGrouped");
+      expect(page).toContain("BarChartCard");
     });
   });
 

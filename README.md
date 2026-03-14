@@ -31,6 +31,14 @@ A PNPM monorepo template for generating SOLID, repeatable app blocks (Next.js, N
 `- plans/                   # Implementation planning notes
 ```
 
+## Database scripting note
+
+Use `db-ops` as the home for database-related scripting, including:
+
+- data migrations
+- data-engineering scripts/jobs
+- seeding/backfill helpers
+
 ## Quickstart
 
 ### Prerequisites
@@ -143,6 +151,7 @@ pnpm create:block -- --block next-crud-pages --app <next-app-name> --model <Mode
 pnpm create:block -- --block next-crud-pages --app <next-app-name> --models User,Account --list-mode infinite --layout cards --form-style two-column
 pnpm create:block -- --block next-analytics-pages --app <next-app-name> --analytics-app <api-app-name> --model <Model>
 pnpm create:block -- --block next-analytics-pages --app <next-app-name> --analytics-app <api-app-name> --all --layout split --profile operations
+pnpm create:block -- --block next-compose-page --app <next-app-name> --preset dashboard-basic --model <Model> --route dashboard --analytics-app <api-app-name>
 ```
 
 `pnpm gen:examples` runs a full root-level generation flow:
@@ -304,6 +313,29 @@ pnpm create:block -- --block next-analytics-pages --app web --analytics-app api 
 - generates an analytics index route (`src/app/<route-base>/page.tsx`) linking to generated model pages
 - supports semantic-layer customization flags: `--layout`, `--profile`, `--default-grain`, `--route-base`
 - respects `/* no-auto-update */` and `/*_ no-auto-update _*/` markers
+
+### Compose a custom Next page from JSON spec
+
+Use this when you want a customizable page composition path (for example list + chart dashboard layout) instead of only out-of-the-box model blocks.
+
+```bash
+pnpm create:block -- --block next-compose-page --app web --preset dashboard-basic --model User --route dashboard --analytics-app api
+pnpm create:block -- --block next-compose-page --app web --spec automations/specs/pages/dashboard-basic.json --model User --route insights/dashboard --analytics-app api
+```
+
+`next-compose-page` behavior:
+
+- loads a JSON page spec (`--spec`) or preset (`--preset`, default `dashboard-basic`)
+- resolves contract refs against:
+  - database contracts in `packages/database/contracts/models/*.model.ts`
+  - analytics contracts in `apps/<analytics-app>/src/analytics/contracts/*.analytics.ts`
+- generates a composed page at `apps/<app>/src/app/<route>/page.tsx`
+- currently supports section types:
+  - `crud-list`
+  - `analytics-bar-chart`
+  - `analytics-line-chart`
+  - `analytics-table`
+- designed as a customizable path that complements existing out-of-the-box generators (`next-crud-pages`, `next-analytics-pages`)
 
 `next-app` and `nest-app` run `pnpm install` automatically after generation.
 Use `--skip-install` when chaining multiple generators and installing once at the end.
