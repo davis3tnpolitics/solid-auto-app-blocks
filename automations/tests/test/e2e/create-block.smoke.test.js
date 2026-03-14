@@ -459,6 +459,10 @@ describe("create:block smoke tests", () => {
       expect(api).toContain("requestCubeLoad");
       expect(api).toContain("toMember(measure)");
       expect(route).toContain("/cubejs-api/v1/load");
+      expect(route).toContain("process.env.CUBE_API_TOKEN");
+      expect(route).toContain('{ status: 400 }');
+      expect(route).toContain('{ status: 502 }');
+      expect(route).toContain("Cube API returned a non-success response.");
       expect(page).toContain("DataBars");
       expect(page).toContain("BarChartCard");
       expect(page).toContain("LineChartCard");

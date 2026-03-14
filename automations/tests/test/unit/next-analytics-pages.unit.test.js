@@ -150,4 +150,44 @@ export const userAnalyticsContract: AnalyticsQueryContract = {
       removeTempWorkspace(tempRoot);
     }
   });
+
+  it("generates Cube proxy route with hardened error handling", () => {
+    const { createCubeProxyRouteFile } = require(generatorModulePath);
+    const routeSource = createCubeProxyRouteFile();
+
+    expect(routeSource).toContain('process.env.CUBE_API_URL');
+    expect(routeSource).toContain('process.env.NEXT_PUBLIC_CUBE_API_URL');
+    expect(routeSource).toContain('process.env.CUBE_API_TOKEN');
+    expect(routeSource).not.toContain('NEXT_PUBLIC_CUBE_API_TOKEN');
+    expect(routeSource).toContain("/cubejs-api/v1/load");
+    expect(routeSource).toContain('{ status: 400 }');
+    expect(routeSource).toContain('{ status: 502 }');
+    expect(routeSource).toContain('Cube API returned a non-success response.');
+  });
+
+  it("generates Cube load client helper instead of route-specific analytics fetch helper", () => {
+    const { createAnalyticsClientFile } = require(generatorModulePath);
+    const clientSource = createAnalyticsClientFile();
+
+    expect(clientSource).toContain("requestCubeLoad");
+    expect(clientSource).toContain('fetch("/api/analytics/cube"');
+    expect(clientSource).not.toContain("requestAnalytics");
+    expect(clientSource).toContain("CubeLoadResponse");
+  });
+
+  it("generates model analytics API helpers using Cube query presets", () => {
+    const { createModelApiFile } = require(generatorModulePath);
+    const source = createModelApiFile({
+      modelName: "User",
+      contractName: "userAnalyticsContract",
+    });
+
+    expect(source).toContain("requestCubeLoad");
+    expect(source).toContain("toScopeFilters");
+    expect(source).toContain("toMember");
+    expect(source).toContain("fetchUserAnalyticsSummary");
+    expect(source).toContain("fetchUserAnalyticsGrouped");
+    expect(source).toContain("fetchUserAnalyticsTimeSeries");
+    expect(source).not.toContain('"/analytics/users/grouped"');
+  });
 });

@@ -1209,6 +1209,9 @@ if (require.main === module) {
 
 module.exports = {
   main,
+  createAnalyticsClientFile,
+  createCubeProxyRouteFile,
+  createModelApiFile,
   parseStringArrayProperty,
   parseAnalyticsContractSource,
   readAnalyticsContractSpecs,

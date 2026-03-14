@@ -191,16 +191,16 @@ Partial.
 1. Generator unit tests for discovery, flag logic, and safeguards.
 2. Snapshot contract coverage for generated artifacts.
 3. E2E `create:block` and `create:workflow` smoke coverage including cube step.
+4. Dedicated `cube-helpers` unit tests for builders/patterns edge cases (`packages/cube-helpers/test`).
 
 ### Remaining
 
-1. Dedicated `cube-helpers` package unit tests for builders/patterns edge cases.
-2. Expanded regression coverage for advanced analytics profile options (once Slice 4 lands).
+1. Expanded regression coverage for advanced analytics profile options (once Slice 4 lands).
 
 ### Exit Criteria Check
 
 1. Generator regressions are detectable: met.
-2. Full helper+generator stability envelope: not yet met.
+2. Full helper+generator stability envelope: partially met (advanced profile coverage pending Slice 4).
 
 ---
 
@@ -233,17 +233,15 @@ Partial.
 
 1. Harden direct Cube consumer scaffolding (typed query presets + scoped filter handling + proxy resilience).
 2. Complete Slice 4 by introducing profile flags and customizable aggregation templates.
-3. Complete Slice 6 for helper tests (`packages/cube-helpers` unit suite).
-4. Complete Slice 7 operational gates (performance/security checks).
-5. Add dedicated tests for the generated Next Cube proxy route (`/api/analytics/cube`) and error handling paths.
+3. Complete Slice 7 operational gates (performance/security checks).
+4. Continue expanding regression coverage for advanced profile options after Slice 4 lands.
 
 ---
 
 ## Updated Recommended Execution Order
 
-1. Slice 6 completion (helper test coverage)
-2. Slice 4 completion (rich profile generation)
-3. Slice 7 completion (operational governance)
-4. Direct Cube proxy hardening tests and docs polish
+1. Slice 4 completion (rich profile generation)
+2. Slice 7 completion (operational governance)
+3. Direct Cube proxy hardening tests and docs polish
 
 This order keeps the direct Cube path stable first, then unlocks richer generation and operational governance.

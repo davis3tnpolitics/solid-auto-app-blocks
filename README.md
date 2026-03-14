@@ -124,6 +124,7 @@ pnpm lint:automation-contracts
 pnpm verify
 pnpm test:automations
 pnpm test:ui
+pnpm test:cube-helpers
 pnpm typecheck
 pnpm seed:fake -- --count 25 --truncate true
 pnpm test:automations:update
@@ -315,6 +316,7 @@ Use `--skip-install` when chaining multiple generators and installing once at th
   - workspace typecheck
   - automations tests
   - UI tests + coverage artifact
+  - cube-helpers unit tests
 - generated app workflows (`.github/workflows/app-<name>-ci.yml`) run app-scoped lint/typecheck/test/build checks.
 
 ## Generator testing
@@ -368,6 +370,7 @@ pnpm --filter @workspace/ui typecheck
 ```bash
 pnpm --filter cube-helpers build
 pnpm --filter cube-helpers typecheck
+pnpm --filter cube-helpers test
 ```
 
 ## House patterns

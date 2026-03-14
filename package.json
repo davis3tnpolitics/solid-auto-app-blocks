@@ -22,10 +22,11 @@
     "lint": "pnpm lint:workspace && pnpm lint:automation-contracts",
     "test:automations": "pnpm --filter automations-tests test",
     "test:automations:update": "pnpm --filter automations-tests test:update",
+    "test:cube-helpers": "pnpm --filter cube-helpers test",
     "typecheck": "pnpm -r --filter \"./packages/*\" --filter \"./apps/*\" --if-present typecheck",
     "typecheck:ui": "pnpm --filter @workspace/ui typecheck",
     "test:ui": "pnpm --filter @workspace/ui test:coverage",
-    "test": "pnpm test:automations && pnpm test:ui",
+    "test": "pnpm test:automations && pnpm test:ui && pnpm test:cube-helpers",
     "verify": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "pnpm": {

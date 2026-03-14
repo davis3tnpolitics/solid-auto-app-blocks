@@ -17,6 +17,7 @@ All notable changes to this repository are documented in this file.
 - Generated CRUD model overrides scaffold (`overrides.ts`) to customize hidden/readonly fields, widgets, and per-field Zod validators.
 - `cube-service-updator` manifest + generator for model-driven Cube analytics scaffolding (`src/analytics/cubes`, `src/analytics/contracts`, `src/analytics/index.ts`).
 - New `cube-helpers` package with typed Cube semantic-layer builders for dimensions/measures/time windows/pre-aggregations.
+- Dedicated `cube-helpers` unit test suite (`packages/cube-helpers/test`) plus root script `pnpm test:cube-helpers`.
 - `cube-app` manifest + generator for Cube app scaffolding with Cube CLI-first bootstrap and deterministic fallback templates.
 - `next-analytics-pages` manifest + generator for model-driven Next analytics pages (KPI totals, grouped chart/table, time-series controls) generated from Cube analytics contracts.
 - Root fake-data seeding script: `pnpm seed:fake` (backed by `packages/database/scripts/db-seed-fake.ts`) for schema-driven local test data insertion.
@@ -27,3 +28,4 @@ All notable changes to this repository are documented in this file.
 - `examples` workflow now chains API CRUD + Cube analytics + `next-crud-pages` + `next-analytics-pages` to scaffold end-to-end CRUD and analytics contracts/pages.
 - Pnpm override pins `prisma-generator-fake-data`'s transitive `@faker-js/faker` dependency to a CommonJS-compatible version (`8.4.1`) so `pnpm --filter database db:generate` works reliably in this workspace.
 - `next-analytics-pages` now generates direct Cube query consumers and a Next proxy route (`src/app/api/analytics/cube/route.ts`) instead of expecting Nest summary/grouped/timeseries analytics endpoints.
+- Repo infrastructure CI now runs cube-helpers unit tests as a first-class gate.

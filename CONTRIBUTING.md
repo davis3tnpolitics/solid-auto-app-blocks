@@ -74,6 +74,12 @@ If you change `cube-service-updator` contracts, update and verify:
 - generated `cube-helpers` usage patterns in cube artifacts
 - snapshot coverage in `automations/tests/test/contracts`
 
+If you change `cube-helpers` contracts/builders/patterns, update and verify:
+
+- unit coverage in `packages/cube-helpers/test/**/*.test.js`
+- edge-case behavior for measures/time dimensions/pre-aggregations/date-bucket helpers
+- `pnpm test:cube-helpers` passes locally and in CI
+
 If you change `cube-app` contracts, update and verify:
 
 - CLI-first bootstrap behavior (`cubejs-cli`) and deterministic fallback behavior
