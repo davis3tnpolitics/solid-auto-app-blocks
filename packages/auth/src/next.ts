@@ -1,15 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
-import type { PrismaClient } from "database";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 
 type Overrideable<T> = Partial<T> | undefined;
+type AuthPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
 /**
  * Builds a shared Auth.js/NextAuth config that uses the workspace Prisma client.
  * Consumers can merge in providers, secrets, and callbacks.
  */
 export function createAuthConfig(
-  prisma: PrismaClient,
+  prisma: AuthPrismaClient,
   overrides: Overrideable<NextAuthConfig> = {}
 ): NextAuthConfig {
   const base: NextAuthConfig = {
